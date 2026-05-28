@@ -17,7 +17,7 @@ import numpy as np
 import rasterio
 from PIL import Image
 
-from .viz import label_to_rgb, normalize_band, write_prj, write_worldfile
+from .viz import colorize, label_to_rgb, normalize_band, resolve_styles, write_prj, write_worldfile
 
 
 def _save_jpg(array, path: Path, quality: int = 92) -> None:
@@ -46,7 +46,8 @@ def _band_ranges(paths, n_bands, nodata, sample=400, per_band_px=2000):
     return ranges
 
 
-def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfile: bool):
+def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfile: bool,
+                     styles: dict):
     paths = sorted((tiles_dir / "tiles" / "features").glob("*.tif"))
     if limit:
         paths = paths[:limit]
@@ -58,11 +59,14 @@ def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfil
         n_bands = ds.count
         band_names = [d or f"band{i+1}" for i, d in enumerate(ds.descriptions)]
         nodata = ds.nodata
+        dx = ds.res[0]
 
     ranges = _band_ranges(paths, n_bands, nodata)
     print(f"  feature bands {band_names}")
     print(f"  intensity ranges {[tuple(round(v, 2) for v in r) for r in ranges]}")
     for bn in band_names:
+        style = styles.get(bn)
+        print(f"    {bn:<12} -> {'cmap=' + style['cmap'] + (' +hillshade' if style.get('hillshade') else '') if style else 'grayscale'}")
         (out_dir / "features" / bn).mkdir(parents=True, exist_ok=True)
 
     for p in paths:
@@ -71,9 +75,17 @@ def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfil
             transform = ds.transform
             crs = ds.crs
         for bi, bn in enumerate(band_names):
-            u8, _ = normalize_band(data[bi], nodata, ranges[bi][0], ranges[bi][1])
+            style = styles.get(bn)
+            if style:
+                img = colorize(
+                    data[bi], nodata, style["cmap"], ranges[bi][0], ranges[bi][1],
+                    hillshade=style.get("hillshade", False), dx=dx,
+                    vert_exag=style.get("vert_exag", 5.0),
+                )
+            else:
+                img, _ = normalize_band(data[bi], nodata, ranges[bi][0], ranges[bi][1])
             jp = out_dir / "features" / bn / f"{p.stem}.jpg"
-            _save_jpg(u8, jp)
+            _save_jpg(img, jp)
             if worldfile:
                 write_worldfile(jp, transform)
                 write_prj(jp, crs)
@@ -111,15 +123,20 @@ def main(argv=None) -> None:
     ap.add_argument("--limit", type=int, default=None, help="Only convert the first N tiles.")
     ap.add_argument("--no-worldfile", action="store_true",
                     help="Skip writing .jgw/.prj sidecars.")
+    ap.add_argument("--config", default="tiling/config/polygon1.yaml",
+                    help="Polygon config for per-band colormaps (falls back to built-in defaults).")
+    ap.add_argument("--gray", action="store_true",
+                    help="Force grayscale for all feature bands (ignore colormaps).")
     args = ap.parse_args(argv)
 
     tiles_dir = Path(args.tiles_dir)
     out_dir = Path(args.out) if args.out else tiles_dir / "jpg"
     worldfile = not args.no_worldfile
+    styles = {} if args.gray else resolve_styles(args.config)
 
     print(f"[+] tiles -> jpg  ({args.what})  from {tiles_dir}")
     if args.what in ("features", "both"):
-        convert_features(tiles_dir, out_dir, args.limit, worldfile)
+        convert_features(tiles_dir, out_dir, args.limit, worldfile, styles)
     if args.what in ("labels", "both"):
         convert_labels(tiles_dir, out_dir, args.limit, worldfile)
     print(f"[+] done -> {out_dir}")

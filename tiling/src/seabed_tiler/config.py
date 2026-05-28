@@ -23,6 +23,10 @@ class LayerConfig(BaseModel):
     to_gray: bool = False
     resampling: str = "nearest"
     native_res_m: float | None = None
+    # JPEG rendering (used by to_jpg / stitch previews, not by the GeoTIFF tiles):
+    cmap: str | None = None       # matplotlib colormap name; None -> grayscale
+    hillshade: bool = False       # blend relief shading (for elevation-like layers)
+    vert_exag: float = 5.0        # vertical exaggeration for hillshade
 
 
 class LabelRule(BaseModel):

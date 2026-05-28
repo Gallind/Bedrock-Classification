@@ -53,10 +53,15 @@ Convert tiles to viewable JPEGs (each keeps a `.jgw` + `.prj` so it stays georef
 PYTHONPATH=tiling/src .venv/bin/python -m seabed_tiler.to_jpg --tiles-dir outputs/polygon1
 ```
 
-- Features → one grayscale JPEG per band under `jpg/features/<band>/` (intensity scaled
-  consistently across tiles from a sample).
+- Features → one JPEG per band under `jpg/features/<band>/`, colored to mimic the original
+  renders: bathymetry uses a green→yellow ramp with hillshade relief, slope uses YlOrRd
+  (yellow→red), backscatter stays grayscale. Intensity is scaled consistently across tiles.
 - Labels → color-coded JPEGs under `jpg/labels/` (red=rock, salmon=shallow_rock, blue=sand).
-- `--what features|labels|both`, `--limit N` (sample), `--no-worldfile` to skip sidecars.
+- `--what features|labels|both`, `--limit N` (sample), `--no-worldfile` to skip sidecars,
+  `--gray` to force grayscale, `--config` to read per-band colormaps from a polygon config.
+
+Per-band colormaps live in the polygon config under each layer (`cmap`, `hillshade`,
+`vert_exag`); the built-in defaults already match polygon1's originals.
 
 Stitch the tiles back into the full image to confirm the split round-trips correctly:
 

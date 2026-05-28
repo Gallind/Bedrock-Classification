@@ -23,7 +23,7 @@ import rasterio
 from PIL import Image
 from rasterio.transform import from_origin
 
-from .viz import label_to_rgb, normalize_band, write_prj, write_worldfile
+from .viz import colorize, label_to_rgb, normalize_band, resolve_styles, write_prj, write_worldfile
 
 
 def _gather_grid(paths, manifest_path=None):
@@ -55,7 +55,7 @@ def _gather_grid(paths, manifest_path=None):
     return xmin, ymax, res, n_rows, n_cols, transform, crs
 
 
-def stitch_features(tiles_dir: Path, out_dir: Path):
+def stitch_features(tiles_dir: Path, out_dir: Path, styles: dict):
     paths = sorted((tiles_dir / "tiles" / "features").glob("*.tif"))
     if not paths:
         print("  no feature tiles found")
@@ -91,9 +91,16 @@ def stitch_features(tiles_dir: Path, out_dir: Path):
             dst.set_band_description(i, bn)
 
     for bi, bn in enumerate(band_names):
-        u8, _ = normalize_band(master[bi], nodata)
+        style = styles.get(bn)
+        if style:
+            img = colorize(
+                master[bi], nodata, style["cmap"], hillshade=style.get("hillshade", False),
+                dx=res, vert_exag=style.get("vert_exag", 5.0),
+            )
+        else:
+            img, _ = normalize_band(master[bi], nodata)
         jp = out_dir / f"features_{bn}.jpg"
-        Image.fromarray(u8).save(jp, quality=90)
+        Image.fromarray(img).save(jp, quality=90)
         write_worldfile(jp, transform)
         write_prj(jp, crs)
 
@@ -144,14 +151,19 @@ def main(argv=None) -> None:
                     help="Polygon output dir containing tiles/features and tiles/labels.")
     ap.add_argument("--out", default=None, help="Output dir (default: <tiles-dir>/stitched).")
     ap.add_argument("--what", choices=["features", "labels", "both"], default="both")
+    ap.add_argument("--config", default="tiling/config/polygon1.yaml",
+                    help="Polygon config for per-band colormaps (falls back to built-in defaults).")
+    ap.add_argument("--gray", action="store_true",
+                    help="Force grayscale for all feature bands (ignore colormaps).")
     args = ap.parse_args(argv)
 
     tiles_dir = Path(args.tiles_dir)
     out_dir = Path(args.out) if args.out else tiles_dir / "stitched"
+    styles = {} if args.gray else resolve_styles(args.config)
 
     print(f"[+] stitch tiles ({args.what}) from {tiles_dir}")
     if args.what in ("features", "both"):
-        stitch_features(tiles_dir, out_dir)
+        stitch_features(tiles_dir, out_dir, styles)
     if args.what in ("labels", "both"):
         stitch_labels(tiles_dir, out_dir)
     print(f"[+] done -> {out_dir}")

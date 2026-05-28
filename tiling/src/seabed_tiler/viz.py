@@ -19,6 +19,24 @@ LABEL_COLORS = {
 }
 _UNKNOWN_COLOR = (255, 255, 255)
 
+# Default JPEG rendering per band, chosen to mimic the original DataBase renders.
+# Bands not listed here render as grayscale. A polygon config can override these.
+BAND_STYLE = {
+    "bathymetry": {"cmap": "summer", "hillshade": True, "vert_exag": 5.0},
+    "slope": {"cmap": "YlOrRd", "hillshade": False, "vert_exag": 1.0},
+}
+
+
+def _get_cmap(name):
+    import matplotlib
+
+    try:
+        return matplotlib.colormaps[name]
+    except (KeyError, AttributeError):
+        import matplotlib.cm as cm
+
+        return cm.get_cmap(name)
+
 
 def normalize_band(arr, nodata, vmin=None, vmax=None, p_low=2, p_high=98):
     """Scale a float band to uint8 [0,255]; nodata/NaN -> 0 (black).
@@ -40,6 +58,70 @@ def normalize_band(arr, nodata, vmin=None, vmax=None, p_low=2, p_high=98):
     u8 = (scaled * 255).astype("uint8")
     u8[~mask] = 0
     return u8, mask
+
+
+def colorize(arr, nodata, cmap_name, vmin=None, vmax=None, hillshade=False,
+             dx=0.5, vert_exag=5.0, p_low=2, p_high=98) -> np.ndarray:
+    """Map a float band to an RGB image via a matplotlib colormap (nodata/NaN -> black).
+
+    With ``hillshade=True`` the colormap is blended with relief shading computed from the
+    surface itself (matplotlib LightSource), reproducing hillshaded elevation renders.
+    ``dx`` is the cell size in meters; ``vert_exag`` exaggerates the relief.
+    """
+    a = arr.astype("float32")
+    mask = (a != nodata) & ~np.isnan(a)
+    if vmin is None or vmax is None:
+        if mask.any():
+            vmin, vmax = np.percentile(a[mask], [p_low, p_high])
+        else:
+            vmin, vmax = 0.0, 1.0
+    if vmax <= vmin:
+        vmax = vmin + 1.0
+
+    cmap = _get_cmap(cmap_name)
+    if hillshade:
+        from matplotlib.colors import LightSource, Normalize
+
+        fill = float(a[mask].mean()) if mask.any() else 0.0
+        surface = np.where(mask, a, fill)
+        light = LightSource(azdeg=315, altdeg=45)
+        shaded = light.shade(
+            surface, cmap=cmap, norm=Normalize(vmin, vmax),
+            blend_mode="soft", vert_exag=vert_exag, dx=dx, dy=dx,
+        )
+        rgb = (shaded[..., :3] * 255).astype("uint8")
+    else:
+        normed = np.clip((a - vmin) / (vmax - vmin), 0.0, 1.0)
+        rgb = (cmap(normed)[..., :3] * 255).astype("uint8")
+
+    rgb[~mask] = 0
+    return rgb
+
+
+def resolve_styles(config_path=None) -> dict:
+    """Band -> render style dict, starting from BAND_STYLE and overlaying a config.
+
+    A layer with an explicit ``cmap`` overrides the default; a layer with ``to_gray``
+    and no ``cmap`` forces grayscale (style removed).
+    """
+    styles = {k: dict(v) for k, v in BAND_STYLE.items()}
+    if config_path:
+        from pathlib import Path
+
+        if Path(config_path).exists():
+            from .config import load_config
+
+            cfg = load_config(config_path)
+            for layer in cfg.layers:
+                if layer.cmap:
+                    styles[layer.name] = {
+                        "cmap": layer.cmap,
+                        "hillshade": layer.hillshade,
+                        "vert_exag": layer.vert_exag,
+                    }
+                elif layer.to_gray:
+                    styles.pop(layer.name, None)
+    return styles
 
 
 def label_to_rgb(arr) -> np.ndarray:

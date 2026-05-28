@@ -18,15 +18,20 @@ layers:
 
   # Real measured values, native 0.5 m. Coverage is sparse (~half the bounding box);
   # missing cells become feature_nodata.
+  # cmap/hillshade only affect the JPEG previews (to_jpg / stitch), not the GeoTIFFs.
   - name: bathymetry
     kind: xyz
     path: "bathymetry Grid 0.5m.xyz"
     native_res_m: 0.5
+    cmap: summer          # green (deep) -> yellow (shallow), like the original render
+    hillshade: true       # relief shading to match the hillshaded original
+    vert_exag: 5.0
 
   - name: slope
     kind: xyz
     path: "Slope  Grid 0.5m.xyz"
     native_res_m: 0.5
+    cmap: YlOrRd          # yellow (low slope) -> red (steep), like the original render
 
 labels:
   kind: shapefile
