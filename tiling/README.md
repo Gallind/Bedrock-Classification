@@ -45,6 +45,29 @@ Outputs land in `outputs/polygon1/`:
 - `manifest.csv` — one row per tile (bbox, valid fraction, per-class pixel counts, paths).
 - `manifest.geojson` / `grid_preview.geojson` — drop into QGIS to inspect the 50 % overlap.
 
+## Inspecting the tiles
+
+Convert tiles to viewable JPEGs (each keeps a `.jgw` + `.prj` so it stays georeferenced):
+
+```bash
+PYTHONPATH=tiling/src .venv/bin/python -m seabed_tiler.to_jpg --tiles-dir outputs/polygon1
+```
+
+- Features → one grayscale JPEG per band under `jpg/features/<band>/` (intensity scaled
+  consistently across tiles from a sample).
+- Labels → color-coded JPEGs under `jpg/labels/` (red=rock, salmon=shallow_rock, blue=sand).
+- `--what features|labels|both`, `--limit N` (sample), `--no-worldfile` to skip sidecars.
+
+Stitch the tiles back into the full image to confirm the split round-trips correctly:
+
+```bash
+PYTHONPATH=tiling/src .venv/bin/python -m seabed_tiler.stitch --tiles-dir outputs/polygon1
+```
+
+Writes `stitched/features.tif` + per-band JPEG previews and `stitched/labels.tif` +
+colorized `labels.jpg`. Open them next to `DataBase/polygon1/` in QGIS — overlapping tiles
+reassemble seamlessly, and gaps show where low-coverage tiles were filtered out.
+
 ## Tuning (no code changes)
 
 Edit the YAML and re-run:
