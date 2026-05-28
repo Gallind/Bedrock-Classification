@@ -116,8 +116,9 @@ def convert_labels(tiles_dir: Path, out_dir: Path, limit: int | None, worldfile:
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description="Convert GeoTIFF tiles to viewable JPEGs.")
-    ap.add_argument("--tiles-dir", default="outputs/polygon1",
-                    help="Polygon output dir containing tiles/features and tiles/labels.")
+    ap.add_argument("--tiles-dir", default=None,
+                    help="Run folder containing tiles/features and tiles/labels "
+                         "(default: derived from --config).")
     ap.add_argument("--out", default=None, help="Output dir (default: <tiles-dir>/jpg).")
     ap.add_argument("--what", choices=["features", "labels", "both"], default="both")
     ap.add_argument("--limit", type=int, default=None, help="Only convert the first N tiles.")
@@ -129,7 +130,11 @@ def main(argv=None) -> None:
                     help="Force grayscale for all feature bands (ignore colormaps).")
     args = ap.parse_args(argv)
 
-    tiles_dir = Path(args.tiles_dir)
+    if args.tiles_dir:
+        tiles_dir = Path(args.tiles_dir)
+    else:
+        from .config import load_config
+        tiles_dir = load_config(args.config).out_dir
     out_dir = Path(args.out) if args.out else tiles_dir / "jpg"
     worldfile = not args.no_worldfile
     styles = {} if args.gray else resolve_styles(args.config)

@@ -90,6 +90,17 @@ class Config(BaseModel):
         return self.tile_size_m * (1.0 - self.overlap)
 
     @property
+    def run_tag(self) -> str:
+        """Folder-safe tag of the params that change the output, e.g. t10m_o50pct_r0.5m."""
+        def f(v):
+            return f"{v:g}"
+        return (
+            f"t{f(self.tile_size_m)}m"
+            f"_o{int(round(self.overlap * 100))}pct"
+            f"_r{f(self.target_resolution_m)}m"
+        )
+
+    @property
     def src_path(self) -> Path:
         return self.base_dir / self.src_dir
 
@@ -102,7 +113,8 @@ class Config(BaseModel):
 
     @property
     def out_dir(self) -> Path:
-        return self.base_dir / self.output.dir / self.name
+        # Per-config subfolder so different tile sizes / overlaps / resolutions don't collide.
+        return self.base_dir / self.output.dir / self.name / self.run_tag
 
 
 def _deep_merge(base: dict, override: dict) -> dict:

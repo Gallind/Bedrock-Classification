@@ -17,8 +17,13 @@ tiling/
     polygon1.yaml     # per-polygon paths, layers, label class-map (overrides default)
   src/seabed_tiler/   # the package
   tests/              # grid math + label-name normalization
-outputs/<name>/       # generated (gitignored): tiles/features, tiles/labels, manifests
+outputs/<name>/<run-tag>/   # generated (gitignored): tiles/features, tiles/labels, manifests
 ```
+
+Outputs are namespaced per config by a **run-tag** encoding the params that change the
+result — tile size, overlap, resolution — e.g. `outputs/polygon1/t10m_o50pct_r0.5m/`.
+Changing `tile_size_m` to 50 writes to `outputs/polygon1/t50m_o50pct_r0.5m/` instead, so
+different runs never overwrite each other.
 
 ## Setup
 
@@ -37,7 +42,7 @@ venv or a conda env and install there — do not force a source build.
 PYTHONPATH=tiling/src .venv/bin/python -m seabed_tiler --config tiling/config/polygon1.yaml
 ```
 
-Outputs land in `outputs/polygon1/`:
+Outputs land in `outputs/polygon1/<run-tag>/` (e.g. `t10m_o50pct_r0.5m/`):
 
 - `tiles/features/<name>_rRRR_cCCC.tif` — multiband float32 (bands per `band_order`).
 - `tiles/labels/<name>_rRRR_cCCC.tif` — uint8 class id (`0` background, `1` rock,
