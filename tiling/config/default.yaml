@@ -1,0 +1,22 @@
+# Shared defaults for the seabed tiler. A polygon config (e.g. polygon1.yaml) is
+# deep-merged on top of this file, so anything here can be overridden per polygon.
+
+crs: "EPSG:32636"          # UTM Zone 36N (meters) — matches the survey .prj files
+target_resolution_m: 0.5   # all layers are resampled to this common grid resolution
+tile_size_m: 10            # edge length of each square tile, in meters
+overlap: 0.5               # fraction of overlap between neighbours -> stride = size*(1-overlap)
+extent: auto               # "auto" = intersection of all layer bounds, or [xmin,ymin,xmax,ymax]
+origin_snap_m: 10          # snap the master-grid origin to this multiple (reproducible tiles)
+keep_partial_edge: false   # false = drop trailing tiles that fall outside the extent
+
+filters:
+  min_valid_frac: 0.5      # drop tiles with fewer than this fraction of valid feature pixels
+  require_label: true      # drop tiles that contain no labeled (non-background) pixels
+
+output:
+  dir: outputs             # tiles land in <dir>/<polygon name>/...
+  features_dtype: float32
+  label_nodata: 0          # background / unlabeled class id
+  feature_nodata: -9999.0
+  compress: deflate
+  write_preview_png: false

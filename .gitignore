@@ -4,6 +4,9 @@
 .venv
 *.xyz
 .DS_Store
+outputs/
+__pycache__/
+.pytest_cache/
 
 #####################
 # SECRET

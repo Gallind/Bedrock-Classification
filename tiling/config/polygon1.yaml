@@ -1,0 +1,45 @@
+# polygon1 — the reference pipeline. Only polygon with real measured .xyz layers
+# (bathymetry, slope) plus a clean polygon shapefile of the 3 classes.
+
+name: polygon1
+src_dir: DataBase/polygon1
+
+# Band order of the output multiband feature GeoTIFF.
+band_order: [backscatter, bathymetry, slope]
+
+layers:
+  # Backscatter is only available as a 0.2 m RGB render (no .xyz). Converted to a single
+  # grayscale intensity band and downsampled (average) to the 0.5 m master grid.
+  - name: backscatter
+    kind: raster_jpg
+    path: "Back scatter 0.2m.jpg"
+    to_gray: true
+    resampling: average
+
+  # Real measured values, native 0.5 m. Coverage is sparse (~half the bounding box);
+  # missing cells become feature_nodata.
+  - name: bathymetry
+    kind: xyz
+    path: "bathymetry Grid 0.5m.xyz"
+    native_res_m: 0.5
+
+  - name: slope
+    kind: xyz
+    path: "Slope  Grid 0.5m.xyz"
+    native_res_m: 0.5
+
+labels:
+  kind: shapefile
+  path: "3 classes.shp"
+  name_field: NAME
+  # Class ids written into the label band.
+  classes:
+    rock: 1
+    shallow_rock: 2
+    sand: 3
+  # Rules are applied IN ORDER to the normalized NAME (lowercased, whitespace collapsed).
+  # "shallow" must come before "rock" so "shallow rock" is not caught by the rock rule.
+  rules:
+    - {pattern: "shallow", class: shallow_rock}
+    - {pattern: "rock",    class: rock}
+    - {pattern: "sand",    class: sand}
