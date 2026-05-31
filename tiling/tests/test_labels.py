@@ -3,8 +3,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from shapely.geometry import LineString, Polygon
+
 from seabed_tiler.config import LabelRule
-from seabed_tiler.labels import classify, normalize_name
+from seabed_tiler.labels import _feature_to_polygons, classify, normalize_name
 
 CLASSES = {"rock": 1, "shallow_rock": 2, "sand": 3}
 RULES = [
@@ -38,3 +40,35 @@ def test_shallow_takes_priority_over_rock():
 
 def test_unmatched_name_returns_none():
     assert classify("seagrass meadow", RULES, CLASSES) is None
+
+
+# Per-class label path (polygons 3/4/5): _feature_to_polygons.
+SQUARE = [(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]  # closed ring
+OPEN = [(0, 0), (0, 10), (10, 10), (10, 0)]            # open path
+
+
+def test_polygonize_closes_a_ring_linestring():
+    polys = _feature_to_polygons(LineString(SQUARE), polygonize=True)
+    assert len(polys) == 1
+    assert polys[0].area == 100.0
+
+
+def test_open_linestring_is_dropped():
+    assert _feature_to_polygons(LineString(OPEN), polygonize=True) == []
+
+
+def test_linestring_ignored_when_polygonize_disabled():
+    assert _feature_to_polygons(LineString(SQUARE), polygonize=False) == []
+
+
+def test_polygon_passes_through():
+    out = _feature_to_polygons(Polygon(SQUARE), polygonize=False)
+    assert len(out) == 1
+    assert out[0].area == 100.0
+
+
+def test_bowtie_polygon_is_repaired_to_valid_area():
+    bowtie = Polygon([(0, 0), (10, 10), (10, 0), (0, 10), (0, 0)])
+    out = _feature_to_polygons(bowtie, polygonize=False)
+    assert out
+    assert all(p.is_valid and p.area > 0 for p in out)
