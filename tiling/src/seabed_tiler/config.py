@@ -39,11 +39,22 @@ class LabelRule(BaseModel):
 class LabelsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["shapefile"]
-    path: str
-    name_field: str = "NAME"
+    kind: Literal["shapefile", "shapefile_per_class"]
     classes: dict[str, int]
-    rules: list[LabelRule]
+
+    # kind="shapefile": one file; the class of each feature is read from name_field
+    # and matched against ordered rules (polygon1's reference style).
+    path: str | None = None
+    name_field: str = "NAME"
+    rules: list[LabelRule] = Field(default_factory=list)
+
+    # kind="shapefile_per_class": one or more shapefile(s) per class, listed in
+    # class_files. Classes are burned in `priority` order (low -> high) so a
+    # higher-priority class wins where polygons overlap. polygonize closes
+    # LineString features into areas first (needed for polygon3).
+    class_files: dict[str, list[str]] | None = None
+    priority: list[str] | None = None
+    polygonize: bool = False
 
 
 class FiltersConfig(BaseModel):
@@ -146,6 +157,13 @@ def load_config(config_path: str | Path, base_dir: str | Path | None = None) -> 
     return cfg
 
 
+def _check_shapefile(path: Path, missing: list[str]) -> None:
+    """A shapefile needs its .shp/.shx/.dbf siblings to be readable."""
+    for companion in (path, path.with_suffix(".shx"), path.with_suffix(".dbf")):
+        if not companion.exists():
+            missing.append(str(companion))
+
+
 def validate_inputs(cfg: Config) -> None:
     """Fail fast if any declared input file (or shapefile companion) is missing."""
     missing: list[str] = []
@@ -153,10 +171,12 @@ def validate_inputs(cfg: Config) -> None:
         if not cfg.layer_path(layer).exists():
             missing.append(str(cfg.layer_path(layer)))
 
-    shp = cfg.labels_path
-    for companion in (shp, shp.with_suffix(".shx"), shp.with_suffix(".dbf")):
-        if not companion.exists():
-            missing.append(str(companion))
+    if cfg.labels.kind == "shapefile_per_class":
+        for files in (cfg.labels.class_files or {}).values():
+            for fname in files:
+                _check_shapefile(cfg.src_path / fname, missing)
+    else:
+        _check_shapefile(cfg.labels_path, missing)
 
     if missing:
         raise FileNotFoundError(
