@@ -3,7 +3,7 @@
 
 crs: "EPSG:32636"          # UTM Zone 36N (meters) — matches the survey .prj files
 target_resolution_m: 1.0   # all layers are resampled to this common grid resolution (1 m = U-Net standard)
-tile_size_m: 256           # edge length of each square tile, in meters -> 256x256 px @ 1 m for U-Net
+tile_size_m: 128           # edge length of each square tile, in meters -> 128x128 px @ 1 m for U-Net
 overlap: 0.5               # fraction of overlap between neighbours -> stride = size*(1-overlap)
 extent: auto               # "auto" = intersection of all layer bounds, or [xmin,ymin,xmax,ymax]
 origin_snap_m: 10          # snap the master-grid origin to this multiple (reproducible tiles)
