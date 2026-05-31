@@ -1,0 +1,43 @@
+# polygon4 — three measured .xyz bands (backscatter dB, bathymetry m, slope deg), all
+# native 1 m. Labels are per-class polygon shapefiles. The authoritative rock layer is
+# "Poly4 rock .shp"; "Poly4 rock shape.shp" (~identical to the shallow layer) and
+# "Poly4 shape.shp" (survey boundary rectangle) are intentionally excluded.
+# Tile geometry (1 m / 256 m / 50%) is inherited from default.yaml.
+
+name: polygon4
+src_dir: DataBase/Polygon4
+
+band_order: [backscatter, bathymetry, slope]
+
+layers:
+  - name: backscatter
+    kind: xyz
+    path: "HB_Poly4_BS_1m.xyz"
+    native_res_m: 1.0           # real backscatter (dB); grayscale preview
+
+  - name: bathymetry
+    kind: xyz
+    path: "HB_Poly4_Bathy_1m_XYZ.xyz"
+    native_res_m: 1.0
+    cmap: summer
+    hillshade: true
+    vert_exag: 5.0
+
+  - name: slope
+    kind: xyz
+    path: "HB_Poly4_1m_Slope_XYZ.xyz"
+    native_res_m: 1.0
+    cmap: YlOrRd
+
+labels:
+  kind: shapefile_per_class
+  polygonize: false            # already polygons
+  classes:
+    rock: 1
+    shallow_rock: 2
+    sand: 3
+  priority: [sand, shallow_rock, rock]
+  class_files:
+    rock: ["Poly4 rock .shp"]
+    shallow_rock: ["Poly4 Shallow rock shape.shp"]
+    sand: ["Poly4 Sand .shp"]

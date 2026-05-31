@@ -1,0 +1,43 @@
+# polygon3 — three measured .xyz bands (backscatter dB, bathymetry m, slope deg), all
+# native 1 m. Labels are per-class LineString shapefiles that mostly close into rings,
+# so polygonize is enabled; open lines that cannot form an area are dropped + reported.
+# Tile geometry (1 m / 256 m / 50%) is inherited from default.yaml.
+
+name: polygon3
+src_dir: DataBase/polygon3
+
+band_order: [backscatter, bathymetry, slope]
+
+layers:
+  - name: backscatter
+    kind: xyz
+    path: "HB_Poly3_1m_BS_XYZ.xyz"
+    native_res_m: 1.0           # real backscatter (dB); grayscale preview
+
+  - name: bathymetry
+    kind: xyz
+    path: "HB_Poly3_1m_Bathy_XYZ.xyz"
+    native_res_m: 1.0
+    cmap: summer                # green (deep) -> yellow (shallow), like polygon1
+    hillshade: true
+    vert_exag: 5.0
+
+  - name: slope
+    kind: xyz
+    path: "HB_Poly3_1m_Slope_XYZ.xyz"
+    native_res_m: 1.0
+    cmap: YlOrRd                # yellow (low) -> red (steep)
+
+labels:
+  kind: shapefile_per_class
+  polygonize: true             # close LineString rings into areas before rasterizing
+  classes:
+    rock: 1
+    shallow_rock: 2
+    sand: 3
+  # Burned low -> high priority, so rock wins where classes overlap.
+  priority: [sand, shallow_rock, rock]
+  class_files:
+    rock: ["Poly3_Rock.shp"]
+    shallow_rock: ["Poly3_Shallow Rock.shp"]
+    sand: ["Poly3_Sand.shp"]

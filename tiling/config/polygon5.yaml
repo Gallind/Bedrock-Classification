@@ -1,0 +1,43 @@
+# polygon5 — three measured .xyz bands (backscatter dB, bathymetry m, slope deg), all
+# native 1 m. Labels are per-class polygon/multipolygon shapefiles; classes overlap
+# (shallow_rock and sand share ~half the shallow area), so priority resolves conflicts.
+# "Poly5 shape.shp" (survey boundary rectangle) is intentionally excluded.
+# Tile geometry (1 m / 256 m / 50%) is inherited from default.yaml.
+
+name: polygon5
+src_dir: DataBase/Polygon5
+
+band_order: [backscatter, bathymetry, slope]
+
+layers:
+  - name: backscatter
+    kind: xyz
+    path: "HB_Poly5_BS_1m.xyz"
+    native_res_m: 1.0           # real backscatter (dB); grayscale preview
+
+  - name: bathymetry
+    kind: xyz
+    path: "HB_Poly5_Bathy_1m_XYZ.xyz"
+    native_res_m: 1.0
+    cmap: summer
+    hillshade: true
+    vert_exag: 5.0
+
+  - name: slope
+    kind: xyz
+    path: "HB_Poly5_1m_Slope_XYZ.xyz"
+    native_res_m: 1.0
+    cmap: YlOrRd
+
+labels:
+  kind: shapefile_per_class
+  polygonize: false            # already polygons / multipolygons
+  classes:
+    rock: 1
+    shallow_rock: 2
+    sand: 3
+  priority: [sand, shallow_rock, rock]
+  class_files:
+    rock: ["Poly5 Rock shape.shp"]
+    shallow_rock: ["Poly5 Shallow Rock shape.shp"]
+    sand: ["Poly5 sand.shp"]
