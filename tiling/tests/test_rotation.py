@@ -9,7 +9,7 @@ from affine import Affine
 import geopandas as gpd
 from shapely.geometry import Polygon, box
 
-from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint
+from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect
 
 
 def test_rotated_tile_window_fields():
@@ -84,3 +84,52 @@ def test_label_footprint_raises_on_empty():
         gdf.to_file(shp, driver="ESRI Shapefile")
         with pytest.raises(ValueError, match="no valid annotation geometries"):
             compute_label_footprint([shp])
+
+
+def test_mbr_long_edge_used_for_theta():
+    """For a rectangle that is twice as long as it is wide, theta must align with the long side."""
+    angle = math.radians(30)
+    c, s = math.cos(angle), math.sin(angle)
+    L, W = 200.0, 50.0
+    corners = [
+        (0.0, 0.0),
+        (L * c, L * s),
+        (L * c - W * s, L * s + W * c),
+        (-W * s, W * c),
+    ]
+    poly = Polygon(corners)
+    _, theta, mbr_corners = minimum_bounding_rect(poly)
+    # theta should be near 30 degrees (the long axis)
+    assert abs(math.degrees(theta) - 30.0) < 2.0
+    assert mbr_corners.shape == (4, 2)
+
+
+def test_mbr_small_theta_falls_back_to_zero():
+    """A 3-degree rotation triggers the axis-aligned fallback."""
+    angle = math.radians(3)
+    c, s = math.cos(angle), math.sin(angle)
+    L, W = 300.0, 80.0
+    corners = [(0, 0), (L * c, L * s), (L * c - W * s, L * s + W * c), (-W * s, W * c)]
+    poly = Polygon(corners)
+    _, theta, _ = minimum_bounding_rect(poly)
+    assert theta == pytest.approx(0.0)
+
+
+def test_mbr_near_90deg_falls_back_to_zero():
+    """An 87-degree rotation triggers the axis-aligned fallback."""
+    angle = math.radians(87)
+    c, s = math.cos(angle), math.sin(angle)
+    L, W = 300.0, 80.0
+    corners = [(0, 0), (L * c, L * s), (L * c - W * s, L * s + W * c), (-W * s, W * c)]
+    poly = Polygon(corners)
+    _, theta, _ = minimum_bounding_rect(poly)
+    assert theta == pytest.approx(0.0)
+
+
+def test_mbr_returns_polygon_and_corners():
+    """Return types: (Polygon, float, ndarray shape (4,2))."""
+    rect = box(0, 0, 50, 30)
+    mbr, theta, corners = minimum_bounding_rect(rect)
+    assert isinstance(mbr, Polygon)
+    assert isinstance(theta, float)
+    assert corners.shape == (4, 2)

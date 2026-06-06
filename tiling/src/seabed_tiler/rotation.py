@@ -26,6 +26,7 @@ from pathlib import Path
 
 from affine import Affine
 import geopandas as gpd
+import numpy as np
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
@@ -98,3 +99,45 @@ def compute_label_footprint(shapefile_paths: list[Path]) -> Polygon:
         )
     logger.info("label footprint: %d source geometries, area=%.1f m^2", len(all_geoms), footprint.area)
     return footprint
+
+
+def minimum_bounding_rect(
+    polygon: Polygon,
+) -> tuple[Polygon, float, np.ndarray]:
+    """Compute the minimum-area bounding rectangle of a shapely Polygon.
+
+    Returns:
+        mbr: the MBR as a Polygon (4 vertices + closing vertex).
+        theta: rotation angle in radians of the MBR's LONG axis from UTM East (CCW).
+               Clamped to 0.0 when |theta_deg| < _MIN_THETA_DEG or > 90-_MIN_THETA_DEG
+               (axis-aligned fallback avoids a costly warp for negligible benefit).
+        corners: (4, 2) float64 array of MBR corner UTM coords.
+    """
+    mbr = polygon.minimum_rotated_rectangle
+    coords = np.array(mbr.exterior.coords)[:-1]  # drop closing repeat -> (4, 2)
+
+    # Compute all 4 edge vectors; the MBR has 2 distinct orientations (edges 0 and 1).
+    edge_vecs = np.diff(np.vstack([coords, coords[0]]), axis=0)  # (4, 2)
+    edge_lengths = np.linalg.norm(edge_vecs, axis=1)
+
+    # Pick the long edge (index 0 or 1 — adjacent edges are perpendicular).
+    long_idx = int(np.argmax(edge_lengths[:2]))
+    dx, dy = edge_vecs[long_idx]
+    theta = math.atan2(dy, dx)
+
+    # Normalise to [-pi/2, pi/2] — choose the shorter rotation direction.
+    if theta > math.pi / 2:
+        theta -= math.pi
+    elif theta < -math.pi / 2:
+        theta += math.pi
+
+    deg = abs(math.degrees(theta))
+    if deg < _MIN_THETA_DEG or deg > (90.0 - _MIN_THETA_DEG):
+        logger.warning(
+            "MBR theta=%.1f deg is near axis-aligned (threshold=%.0f deg); using theta=0",
+            math.degrees(theta), _MIN_THETA_DEG,
+        )
+        theta = 0.0
+
+    logger.info("MBR long-axis theta=%.2f deg, MBR area=%.1f m^2", math.degrees(theta), mbr.area)
+    return mbr, theta, coords
