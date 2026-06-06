@@ -4,12 +4,13 @@ import math
 import tempfile
 from pathlib import Path
 
+import numpy as np
 import pytest
 from affine import Affine
 import geopandas as gpd
 from shapely.geometry import Polygon, box
 
-from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect
+from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect, build_rotated_windows
 
 
 def test_rotated_tile_window_fields():
@@ -133,3 +134,34 @@ def test_mbr_returns_polygon_and_corners():
     assert isinstance(mbr, Polygon)
     assert isinstance(theta, float)
     assert corners.shape == (4, 2)
+
+
+def test_build_rotated_windows_stride():
+    """Adjacent column neighbours differ in u_origin by exactly stride_m."""
+    corners = np.array([(0.0, 0.0), (256.0, 0.0), (256.0, 256.0), (0.0, 256.0)])
+    wins = build_rotated_windows(corners, theta=0.0, tile_size_m=128.0, stride_m=64.0)
+    row0 = [w for w in wins if w.row == 0]
+    assert len(row0) >= 2
+    assert row0[1].u_origin - row0[0].u_origin == pytest.approx(64.0)
+
+
+def test_build_rotated_windows_all_inside_mbr():
+    """All tile corners must stay within the MBR bounds (full containment, no partial edges)."""
+    corners = np.array([(100.0, 200.0), (500.0, 200.0), (500.0, 600.0), (100.0, 600.0)])
+    tile_size = 100.0
+    stride = 50.0
+    wins = build_rotated_windows(corners, theta=0.0, tile_size_m=tile_size, stride_m=stride)
+    for w in wins:
+        assert w.u_origin >= 100.0 - 1e-6
+        assert w.u_origin + tile_size <= 500.0 + 1e-6
+        assert w.v_origin - tile_size >= 200.0 - 1e-6
+        assert w.v_origin <= 600.0 + 1e-6
+
+
+def test_build_rotated_windows_stores_theta():
+    """All windows must carry the theta used for the grid."""
+    corners = np.array([(0.0, 0.0), (256.0, 0.0), (256.0, 256.0), (0.0, 256.0)])
+    wins = build_rotated_windows(corners, theta=0.3, tile_size_m=128.0, stride_m=64.0)
+    assert len(wins) > 0
+    assert all(w.theta == pytest.approx(0.3) for w in wins)
+    assert all(isinstance(w, RotatedTileWindow) for w in wins)

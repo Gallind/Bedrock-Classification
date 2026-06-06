@@ -141,3 +141,56 @@ def minimum_bounding_rect(
 
     logger.info("MBR long-axis theta=%.2f deg, MBR area=%.1f m^2", math.degrees(theta), mbr.area)
     return mbr, theta, coords
+
+
+def build_rotated_windows(
+    mbr_corners: np.ndarray,
+    theta: float,
+    tile_size_m: float,
+    stride_m: float,
+) -> list[RotatedTileWindow]:
+    """Generate the overlapping tile grid in the MBR's local (u, v) coordinate frame.
+
+    mbr_corners: (4, 2) array of MBR corner UTM coords from minimum_bounding_rect().
+    theta: rotation angle of the MBR long axis from UTM East (radians).
+    u is along the long axis, v is perpendicular (CCW 90 from u).
+    Only fully-contained tiles are emitted (no partial edges).
+    """
+    c, s = math.cos(theta), math.sin(theta)
+
+    # Project corners to local (u, v): u = x*cos + y*sin,  v = -x*sin + y*cos
+    us = mbr_corners[:, 0] * c + mbr_corners[:, 1] * s
+    vs = -mbr_corners[:, 0] * s + mbr_corners[:, 1] * c
+
+    u_min, u_max = float(us.min()), float(us.max())
+    v_min, v_max = float(vs.min()), float(vs.max())
+
+    windows: list[RotatedTileWindow] = []
+    eps = 1e-6
+    row = 0
+    v_top = v_max
+    while True:
+        v_bot = v_top - tile_size_m
+        if v_bot < v_min - eps:
+            break
+        col = 0
+        u_left = u_min
+        while True:
+            u_right = u_left + tile_size_m
+            if u_right > u_max + eps:
+                break
+            windows.append(RotatedTileWindow(
+                row=row, col=col,
+                u_origin=u_left, v_origin=v_top,
+                theta=theta,
+            ))
+            col += 1
+            u_left += stride_m
+        row += 1
+        v_top -= stride_m
+
+    logger.info(
+        "rotated grid: %d windows (tile=%.0fm stride=%.0fm theta=%.1f deg)",
+        len(windows), tile_size_m, stride_m, math.degrees(theta),
+    )
+    return windows
