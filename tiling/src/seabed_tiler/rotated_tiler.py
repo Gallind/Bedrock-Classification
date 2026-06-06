@@ -18,7 +18,6 @@ from rasterio.enums import Resampling
 
 from .config import Config
 from .io_utils import feature_profile, label_profile, tile_id
-from .manifest import write_rotated_manifest
 from .rotation import (
     RotatedTileWindow,
     build_rotated_windows,
