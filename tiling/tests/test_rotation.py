@@ -2,7 +2,6 @@
 """Tests for the rotation-aware geometry utilities."""
 import math
 
-import numpy as np
 import pytest
 from affine import Affine
 from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine

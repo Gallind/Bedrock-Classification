@@ -22,7 +22,6 @@ import logging
 import math
 from dataclasses import dataclass
 
-import numpy as np
 from affine import Affine
 
 logger = logging.getLogger(__name__)
