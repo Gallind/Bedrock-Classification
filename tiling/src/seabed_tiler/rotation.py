@@ -22,6 +22,8 @@ import logging
 import math
 from dataclasses import dataclass
 
+from pathlib import Path
+
 from affine import Affine
 import geopandas as gpd
 from shapely.geometry import Polygon
@@ -65,7 +67,7 @@ def build_tile_affine(window: RotatedTileWindow, res: float) -> Affine:
                   res * s, -res * c, oy)
 
 
-def compute_label_footprint(shapefile_paths: list) -> Polygon:
+def compute_label_footprint(shapefile_paths: list[Path]) -> Polygon:
     """Return the convex hull of the union of all annotation polygons.
 
     shapefile_paths: list of Path objects pointing to label shapefiles.
@@ -89,5 +91,10 @@ def compute_label_footprint(shapefile_paths: list) -> Polygon:
 
     union = unary_union(all_geoms)
     footprint = union.convex_hull
+    if not isinstance(footprint, Polygon):
+        raise ValueError(
+            f"label footprint resolved to {type(footprint).__name__}, not a Polygon; "
+            "annotation shapefiles may contain only degenerate (collinear) geometries"
+        )
     logger.info("label footprint: %d source geometries, area=%.1f m^2", len(all_geoms), footprint.area)
     return footprint
