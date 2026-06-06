@@ -23,6 +23,9 @@ import math
 from dataclasses import dataclass
 
 from affine import Affine
+import geopandas as gpd
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +63,31 @@ def build_tile_affine(window: RotatedTileWindow, res: float) -> Affine:
     oy = window.u_origin * s + window.v_origin * c
     return Affine(res * c, res * s, ox,
                   res * s, -res * c, oy)
+
+
+def compute_label_footprint(shapefile_paths: list) -> Polygon:
+    """Return the convex hull of the union of all annotation polygons.
+
+    shapefile_paths: list of Path objects pointing to label shapefiles.
+    All geometries are reprojected to EPSG:32636 before unioning.
+
+    Raises ValueError if no valid geometries are found across all files.
+    """
+    all_geoms = []
+    crs_target = "EPSG:32636"
+    for shp in shapefile_paths:
+        gdf = gpd.read_file(shp)
+        if gdf.crs is None:
+            gdf = gdf.set_crs(crs_target)
+        else:
+            gdf = gdf.to_crs(crs_target)
+        valid = gdf[gdf.geometry.is_valid & ~gdf.geometry.is_empty]
+        all_geoms.extend(valid.geometry.tolist())
+
+    if not all_geoms:
+        raise ValueError("no valid annotation geometries found in provided shapefiles")
+
+    union = unary_union(all_geoms)
+    footprint = union.convex_hull
+    logger.info("label footprint: %d source geometries, area=%.1f m^2", len(all_geoms), footprint.area)
+    return footprint

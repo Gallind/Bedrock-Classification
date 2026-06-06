@@ -1,10 +1,15 @@
 # tiling/tests/test_rotation.py
 """Tests for the rotation-aware geometry utilities."""
 import math
+import tempfile
+from pathlib import Path
 
 import pytest
 from affine import Affine
-from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine
+import geopandas as gpd
+from shapely.geometry import Polygon, box
+
+from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint
 
 
 def test_rotated_tile_window_fields():
@@ -44,3 +49,38 @@ def test_rotated_affine_90deg():
     assert aff.b == pytest.approx(res, abs=1e-9)
     assert aff.d == pytest.approx(res, abs=1e-9)
     assert aff.e == pytest.approx(0.0, abs=1e-9)
+
+
+def _write_shp(geoms, path: Path):
+    """Write a shapefile with the given geometries."""
+    gdf = gpd.GeoDataFrame({"geometry": geoms}, crs="EPSG:32636")
+    gdf.to_file(path, driver="ESRI Shapefile")
+
+
+def test_label_footprint_single_polygon():
+    with tempfile.TemporaryDirectory() as tmp:
+        shp = Path(tmp) / "labels.shp"
+        poly = box(100.0, 200.0, 300.0, 500.0)
+        _write_shp([poly], shp)
+        fp = compute_label_footprint([shp])
+        assert isinstance(fp, Polygon)
+        assert fp.contains(poly) or fp.equals(poly)
+
+
+def test_label_footprint_multiple_shapefiles():
+    with tempfile.TemporaryDirectory() as tmp:
+        shp1 = Path(tmp) / "rock.shp"
+        shp2 = Path(tmp) / "sand.shp"
+        _write_shp([box(0, 0, 10, 10)], shp1)
+        _write_shp([box(20, 0, 30, 10)], shp2)
+        fp = compute_label_footprint([shp1, shp2])
+        assert fp.bounds[2] > 20  # footprint spans both shapes
+
+
+def test_label_footprint_raises_on_empty():
+    with tempfile.TemporaryDirectory() as tmp:
+        shp = Path(tmp) / "empty.shp"
+        gdf = gpd.GeoDataFrame({"geometry": []}, crs="EPSG:32636")
+        gdf.to_file(shp, driver="ESRI Shapefile")
+        with pytest.raises(ValueError, match="no valid annotation geometries"):
+            compute_label_footprint([shp])
