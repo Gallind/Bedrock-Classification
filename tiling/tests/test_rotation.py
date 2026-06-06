@@ -10,7 +10,7 @@ from affine import Affine
 import geopandas as gpd
 from shapely.geometry import Polygon, box
 
-from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect, build_rotated_windows
+from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect, build_rotated_windows, extract_rotated_tile
 
 
 def test_rotated_tile_window_fields():
@@ -165,3 +165,30 @@ def test_build_rotated_windows_stores_theta():
     assert len(wins) > 0
     assert all(w.theta == pytest.approx(0.3) for w in wins)
     assert all(isinstance(w, RotatedTileWindow) for w in wins)
+
+
+def test_extract_rotated_tile_theta_zero_equals_direct_slice():
+    """At theta=0 the extracted tile must equal a direct numpy array slice."""
+    from rasterio.crs import CRS
+    from rasterio.enums import Resampling
+
+    res = 1.0
+    crs = CRS.from_epsg(32636)
+    src = np.arange(400.0, dtype="float32").reshape(1, 20, 20)  # 1 band, 20x20
+    # transform: col 0 -> x=0, row 0 -> y=20  (North-up, 1m pixels)
+    src_transform = Affine(res, 0.0, 0.0, 0.0, -res, 20.0)
+    nodata = -9999.0
+
+    # Tile starting at local (u=5, v=15), theta=0, 10 pixels wide
+    # At theta=0: u=5 -> col=5 (x=u), v=15 -> row=20-15=5
+    win = RotatedTileWindow(row=0, col=0, u_origin=5.0, v_origin=15.0, theta=0.0)
+    tile, tile_transform = extract_rotated_tile(
+        src, src_transform, crs, win, res, nodata,
+        tile_px=10, resampling=Resampling.nearest,
+    )
+    expected = src[0, 5:15, 5:15]
+    np.testing.assert_array_equal(tile[0], expected)
+    # tile_transform.c is the x-origin (= u_origin at theta=0)
+    assert tile_transform.c == pytest.approx(5.0)
+    # tile_transform.f is the y-origin (= v_origin at theta=0)
+    assert tile_transform.f == pytest.approx(15.0)

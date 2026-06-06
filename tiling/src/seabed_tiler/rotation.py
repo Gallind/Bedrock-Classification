@@ -29,6 +29,9 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
+from rasterio.crs import CRS
+from rasterio.enums import Resampling
+from rasterio.warp import reproject
 
 logger = logging.getLogger(__name__)
 
@@ -194,3 +197,43 @@ def build_rotated_windows(
         len(windows), tile_size_m, stride_m, math.degrees(theta),
     )
     return windows
+
+
+def extract_rotated_tile(
+    source: np.ndarray,
+    src_transform: Affine,
+    src_crs: CRS,
+    window: RotatedTileWindow,
+    res: float,
+    nodata: float,
+    tile_px: int,
+    resampling: Resampling = Resampling.nearest,
+) -> tuple[np.ndarray, Affine]:
+    """Warp source (B, H, W) float32 array into a rotated tile (B, tile_px, tile_px).
+
+    Pixels outside the source extent are filled with nodata (the destination array is
+    pre-filled before calling reproject so uninitialised memory never leaks through).
+
+    Note: label_nodata=0 equals the background class value. rasterio.warp treats
+    src_nodata=0 pixels as transparent and fills them with dst_nodata=0 -- the output
+    value is identical so no data is lost, but background-class and out-of-extent pixels
+    are indistinguishable in the output.
+    """
+    dst_transform = build_tile_affine(window, res)
+    n_bands = source.shape[0]
+    dst = np.full((n_bands, tile_px, tile_px), nodata, dtype=source.dtype)
+
+    for b in range(n_bands):
+        reproject(
+            source=source[b],
+            destination=dst[b],
+            src_transform=src_transform,
+            src_crs=src_crs,
+            dst_transform=dst_transform,
+            dst_crs=src_crs,
+            resampling=resampling,
+            src_nodata=nodata,
+            dst_nodata=nodata,
+        )
+
+    return dst, dst_transform
