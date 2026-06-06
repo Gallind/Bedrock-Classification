@@ -10,7 +10,6 @@ import math as _math
 from pathlib import Path
 
 import geopandas as gpd
-import numpy as _np
 import pandas as pd
 from shapely.geometry import box, Polygon as _Polygon
 from pyproj import Transformer as _Transformer
