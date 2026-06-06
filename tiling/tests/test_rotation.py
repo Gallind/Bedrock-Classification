@@ -1,5 +1,6 @@
 # tiling/tests/test_rotation.py
 """Tests for the rotation-aware geometry utilities."""
+import json
 import math
 import tempfile
 from pathlib import Path
@@ -9,8 +10,10 @@ import pytest
 from affine import Affine
 import geopandas as gpd
 from shapely.geometry import Polygon, box
+from rasterio.crs import CRS
 
 from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect, build_rotated_windows, extract_rotated_tile
+from seabed_tiler.manifest import write_rotated_manifest
 
 
 def test_rotated_tile_window_fields():
@@ -192,3 +195,34 @@ def test_extract_rotated_tile_theta_zero_equals_direct_slice():
     assert tile_transform.c == pytest.approx(5.0)
     # tile_transform.f is the y-origin (= v_origin at theta=0)
     assert tile_transform.f == pytest.approx(15.0)
+
+
+def test_write_rotated_manifest_creates_csv_and_geojson():
+    """write_rotated_manifest must produce a CSV and a GeoJSON with 4-corner polygons."""
+    crs = CRS.from_epsg(32636)
+    res = 1.0
+    tile_px = 10
+    # theta=0: tile at u_origin=500, v_origin=1000 -> 10x10px -> corners at (500,990),(510,990),(510,1000),(500,1000)
+    rows = [{
+        "tile_id": "polygon1_r000_c000",
+        "row": 0, "col": 0,
+        "theta_deg": 0.0,
+        "u_origin": 500.0, "v_origin": 1000.0,
+        "valid_frac": 0.9,
+        "features_path": "tiles/features/polygon1_r000_c000.tif",
+        "label_path": "tiles/labels/polygon1_r000_c000.tif",
+        "background_px": 5, "rock_px": 85, "shallow_rock_px": 10, "sand_px": 0,
+    }]
+    with tempfile.TemporaryDirectory() as tmp:
+        out_dir = Path(tmp)
+        write_rotated_manifest(rows, out_dir, crs, res, tile_px)
+        assert (out_dir / "manifest.csv").exists()
+        geojson_path = out_dir / "manifest.geojson"
+        assert geojson_path.exists()
+        with open(geojson_path) as f:
+            gj = json.load(f)
+        assert gj["type"] == "FeatureCollection"
+        assert len(gj["features"]) == 1
+        geom = gj["features"][0]["geometry"]
+        assert geom["type"] == "Polygon"
+        assert len(geom["coordinates"][0]) == 5  # 4 corners + closing repeat
