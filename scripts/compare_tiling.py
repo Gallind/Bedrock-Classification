@@ -40,14 +40,35 @@ ROT_COLOR  = "#FF6B35"
 
 
 
-def _draw_tile_grid(ax, gdf, color, fill_alpha=0.10, outline_alpha=0.80, label=None):
-    """Draw tile polygons with semi-transparent fill so overlap density is visible.
-
-    Where two tiles overlap the fill alpha stacks, making that region noticeably
-    darker/more saturated than single-coverage areas — confirming 50% overlap.
-    """
-    gdf.plot(ax=ax, facecolor=color, alpha=fill_alpha, edgecolor="none")
+def _draw_tile_grid(ax, gdf, color, outline_alpha=0.75, label=None):
+    """Draw tile polygon outlines."""
     gdf.boundary.plot(ax=ax, color=color, linewidth=0.6, alpha=outline_alpha, label=label)
+
+
+def _coverage_count(gdf: gpd.GeoDataFrame, extent: list, img_shape: tuple) -> np.ndarray:
+    """Return a pixel raster counting how many tiles cover each pixel.
+
+    Uses rasterio.features.rasterize per tile so rotated polygon shapes are
+    respected exactly — no bounding-box overcount for rotated tiles.
+    """
+    from rasterio.features import rasterize
+    from rasterio.transform import from_bounds
+    from shapely.geometry import mapping
+
+    left, right, bottom, top = extent
+    height, width = img_shape[:2]
+    transform = from_bounds(left, bottom, right, top, width, height)
+    count = np.zeros((height, width), dtype="float32")
+    for geom in gdf.geometry:
+        burned = rasterize(
+            [(mapping(geom), 1)],
+            out_shape=(height, width),
+            transform=transform,
+            fill=0,
+            dtype="float32",
+        )
+        count += burned
+    return count
 
 
 def _compare_one_layer(
@@ -60,22 +81,32 @@ def _compare_one_layer(
     theta: float,
     out_dir: Path,
 ) -> Path:
-    """Generate one 3-panel (original / rotated / both) comparison for a single data layer."""
+    """Generate a 4-panel comparison for a single data layer.
+
+    Panels:
+      1. Original (axis-aligned) tile grid on data background
+      2. Rotated tile grid on data background
+      3. Both grids overlaid
+      4. Tile coverage density heatmap for original tiling — directly shows 50% overlap:
+         interior pixels are covered by 4 tiles (2 horizontal neighbors x 2 vertical),
+         edge pixels by 2, and corner pixels by 1.
+    """
     m = re.match(r"t(\d+)m_o(\d+)pct", RUN_TAG)
     tile_m = int(m.group(1)) if m else "?"
     ovl_pct = int(m.group(2)) if m else "?"
     stride_m = int(tile_m) * (100 - int(ovl_pct)) // 100 if m else "?"
 
-    fig, axes = plt.subplots(1, 3, figsize=(20, 7), constrained_layout=True)
+    fig, axes = plt.subplots(1, 4, figsize=(28, 7), constrained_layout=True)
 
+    # Panels 1-3: tile grid overlays
     titles = [
-        f"Original only  ({len(gdf_orig)} tiles)",
-        f"Rotated only  ({len(gdf_rot)} tiles, theta={theta:.1f}°)",
+        f"Original ({len(gdf_orig)} tiles)",
+        f"Rotated ({len(gdf_rot)} tiles, theta={theta:.1f}°)",
         "Both overlaid",
     ]
     datasets = [(gdf_orig, None), (None, gdf_rot), (gdf_orig, gdf_rot)]
 
-    for ax, title, (go, gr) in zip(axes, titles, datasets):
+    for ax, title, (go, gr) in zip(axes[:3], titles, datasets):
         ax.imshow(bg, extent=extent, origin="upper", aspect="equal", interpolation="nearest")
         if go is not None:
             _draw_tile_grid(ax, go, ORIG_COLOR, label=f"Original ({len(go)})")
@@ -87,6 +118,28 @@ def _compare_one_layer(
         ax.tick_params(labelsize=7)
         if go is not None or gr is not None:
             ax.legend(fontsize=8, loc="upper left")
+
+    # Panel 4: coverage density heatmap
+    ax4 = axes[3]
+    ax4.imshow(bg, extent=extent, origin="upper", aspect="equal", interpolation="nearest",
+               alpha=0.4)
+    count = _coverage_count(gdf_rot, extent, bg.shape)
+    max_count = int(count.max()) if count.max() > 0 else 1
+    im = ax4.imshow(
+        count, extent=extent, origin="upper", aspect="equal",
+        cmap="YlOrRd", alpha=0.75, vmin=0, vmax=max_count,
+    )
+    cbar = fig.colorbar(im, ax=ax4, shrink=0.6, pad=0.02)
+    cbar.set_label("tiles per pixel", fontsize=8)
+    cbar.ax.tick_params(labelsize=7)
+    ax4.set_title(
+        f"Rotated — tile coverage count\n"
+        f"Interior={max_count} tiles confirms {ovl_pct}% overlap",
+        fontsize=10,
+    )
+    ax4.set_xlabel("UTM Easting (m)", fontsize=8)
+    ax4.set_ylabel("UTM Northing (m)", fontsize=8)
+    ax4.tick_params(labelsize=7)
 
     orig_patch = mpatches.Patch(color=ORIG_COLOR, label=f"Original ({len(gdf_orig)} tiles)")
     rot_patch = mpatches.Patch(
