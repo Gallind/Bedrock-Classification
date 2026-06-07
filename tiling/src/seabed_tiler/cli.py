@@ -11,7 +11,7 @@ from pathlib import Path
 from .align import build_grid_and_features
 from .config import load_config, validate_inputs
 from .labels import build_label_array
-from .manifest import write_grid_preview, write_manifest
+from .manifest import write_grid_preview, write_manifest, write_rotated_manifest
 from .tiler import run_tiling
 
 
@@ -22,6 +22,12 @@ def main(argv=None) -> None:
         "--base-dir",
         default=None,
         help="Root that src_dir/output paths resolve against (default: cwd).",
+    )
+    parser.add_argument(
+        "--rotated",
+        action="store_true",
+        help="Also produce rotation-aware tiles aligned to the annotation footprint "
+             "MBR (outputs to <run_tag>_rot/). Does not replace the standard output.",
     )
     args = parser.parse_args(argv)
 
@@ -52,6 +58,33 @@ def main(argv=None) -> None:
     write_grid_preview(windows, cfg.out_dir, grid["crs"])
 
     print(f"[+] wrote {len(rows)} tiles (of {len(windows)} candidates) -> {cfg.out_dir}")
+
+    if args.rotated:
+        from .rotated_tiler import _rotated_out_dir, run_rotated_tiling
+        from .stitch import stitch_rotated_features, stitch_rotated_labels
+        from .viz import resolve_styles
+        print("[+] rotation-aware tiling ...")
+        rot_rows, _ = run_rotated_tiling(cfg, grid)
+        rot_out = _rotated_out_dir(cfg)
+        rot_out.mkdir(parents=True, exist_ok=True)
+        res = cfg.target_resolution_m
+        tpx = int(round(cfg.tile_size_m / res))
+        theta_deg = rot_rows[0]["theta_deg"] if rot_rows else 0.0
+        print(f"    annotation MBR theta={theta_deg:.1f} deg")
+        write_rotated_manifest(rot_rows, rot_out, grid["crs"], res, tpx)
+        print(f"[+] rotated: {len(rot_rows)} tiles -> {rot_out}")
+        print("[+] stitching rotated tiles ...")
+        styles = resolve_styles(args.config)
+        stitch_out = rot_out / "stitched"
+        stitch_rotated_features(rot_out, stitch_out, styles)
+        stitch_rotated_labels(rot_out, stitch_out)
+        print(f"[+] stitched -> {stitch_out}")
+        print("[+] converting rotated tiles to JPEGs ...")
+        from .to_jpg import convert_features, convert_labels
+        jpg_out = rot_out / "jpg"
+        convert_features(rot_out, jpg_out, limit=None, worldfile=True, styles=styles)
+        convert_labels(rot_out, jpg_out, limit=None, worldfile=True)
+        print(f"[+] jpg tiles -> {jpg_out}")
 
 
 if __name__ == "__main__":

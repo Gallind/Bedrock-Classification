@@ -11,6 +11,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 import numpy as np
@@ -59,7 +60,7 @@ def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfil
         n_bands = ds.count
         band_names = [d or f"band{i+1}" for i, d in enumerate(ds.descriptions)]
         nodata = ds.nodata
-        dx = ds.res[0]
+        dx = math.hypot(ds.transform.a, ds.transform.d)
 
     ranges = _band_ranges(paths, n_bands, nodata)
     print(f"  feature bands {band_names}")
