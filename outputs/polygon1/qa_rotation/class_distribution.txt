@@ -1,0 +1,9 @@
+Class distribution comparison: polygon1
+
+  Axis-aligned: 190 tiles
+  Rotated:      154 tiles
+
+  background_px         orig=0.098  rot=0.040
+  rock_px               orig=0.211  rot=0.225
+  shallow_rock_px       orig=0.487  rot=0.547
+  sand_px               orig=0.204  rot=0.188
