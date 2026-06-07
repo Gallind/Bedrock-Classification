@@ -79,6 +79,12 @@ def main(argv=None) -> None:
         stitch_rotated_features(rot_out, stitch_out, styles)
         stitch_rotated_labels(rot_out, stitch_out)
         print(f"[+] stitched -> {stitch_out}")
+        print("[+] converting rotated tiles to JPEGs ...")
+        from .to_jpg import convert_features, convert_labels
+        jpg_out = rot_out / "jpg"
+        convert_features(rot_out, jpg_out, limit=None, worldfile=True, styles=styles)
+        convert_labels(rot_out, jpg_out, limit=None, worldfile=True)
+        print(f"[+] jpg tiles -> {jpg_out}")
 
 
 if __name__ == "__main__":

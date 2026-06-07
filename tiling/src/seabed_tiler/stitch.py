@@ -158,7 +158,7 @@ def _rotated_extent(paths) -> tuple[float, float, float, float, float]:
             xmax = max(xmax, b.right)
             ymax = max(ymax, b.top)
             if res is None:
-                res = ds.res[0]
+                res = math.hypot(ds.transform.a, ds.transform.d)
     return xmin, ymin, xmax, ymax, res
 
 
@@ -186,9 +186,10 @@ def stitch_rotated_features(rot_tiles_dir: Path, out_dir: Path, styles: dict) ->
     for p in paths:
         with rasterio.open(p) as ds:
             for bi in range(n_bands):
+                dst_band = np.full((n_rows, n_cols), nodata, dtype="float32")
                 reproject(
                     source=rasterio.band(ds, bi + 1),
-                    destination=master[bi],
+                    destination=dst_band,
                     src_transform=ds.transform,
                     src_crs=ds.crs,
                     dst_transform=dst_transform,
@@ -197,6 +198,8 @@ def stitch_rotated_features(rot_tiles_dir: Path, out_dir: Path, styles: dict) ->
                     src_nodata=nodata,
                     dst_nodata=nodata,
                 )
+                valid = dst_band != nodata
+                master[bi][valid] = dst_band[valid]
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tif = out_dir / "features.tif"
