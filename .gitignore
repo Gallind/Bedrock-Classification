@@ -2,7 +2,6 @@
 # HEAVY / NON-RELATED
 #####################
 .venv
-*.xyz
 .DS_Store
 outputs/
 __pycache__/
