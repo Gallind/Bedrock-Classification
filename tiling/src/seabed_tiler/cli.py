@@ -61,6 +61,8 @@ def main(argv=None) -> None:
 
     if args.rotated:
         from .rotated_tiler import _rotated_out_dir, run_rotated_tiling
+        from .stitch import stitch_rotated_features, stitch_rotated_labels
+        from .viz import resolve_styles
         print("[+] rotation-aware tiling ...")
         rot_rows, _ = run_rotated_tiling(cfg, grid)
         rot_out = _rotated_out_dir(cfg)
@@ -71,6 +73,12 @@ def main(argv=None) -> None:
         print(f"    annotation MBR theta={theta_deg:.1f} deg")
         write_rotated_manifest(rot_rows, rot_out, grid["crs"], res, tpx)
         print(f"[+] rotated: {len(rot_rows)} tiles -> {rot_out}")
+        print("[+] stitching rotated tiles ...")
+        styles = resolve_styles(args.config)
+        stitch_out = rot_out / "stitched"
+        stitch_rotated_features(rot_out, stitch_out, styles)
+        stitch_rotated_labels(rot_out, stitch_out)
+        print(f"[+] stitched -> {stitch_out}")
 
 
 if __name__ == "__main__":

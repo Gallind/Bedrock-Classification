@@ -145,67 +145,139 @@ def stitch_labels(tiles_dir: Path, out_dir: Path):
     print(f"  stitched {len(paths)} tiles -> {tif} ({n_rows}x{n_cols}px) + colorized JPEG")
 
 
-def stitch_rotated_features(rot_tiles_dir: Path, out_dir: Path) -> None:
-    """Stitch rotated feature tiles into a North-up mosaic via rasterio.merge."""
-    from rasterio.merge import merge as rio_merge
+def _rotated_extent(paths) -> tuple[float, float, float, float, float]:
+    """Return (xmin, ymin, xmax, ymax, res) as the axis-aligned envelope of all rotated tiles."""
+    xmin = ymin = math.inf
+    xmax = ymax = -math.inf
+    res = None
+    for p in paths:
+        with rasterio.open(p) as ds:
+            b = ds.bounds
+            xmin = min(xmin, b.left)
+            ymin = min(ymin, b.bottom)
+            xmax = max(xmax, b.right)
+            ymax = max(ymax, b.top)
+            if res is None:
+                res = ds.res[0]
+    return xmin, ymin, xmax, ymax, res
+
+
+def stitch_rotated_features(rot_tiles_dir: Path, out_dir: Path, styles: dict) -> None:
+    """Stitch rotated feature tiles into a North-up mosaic by reprojecting each tile."""
+    from rasterio.warp import reproject, Resampling as _Resampling
+    from rasterio.transform import from_origin
     paths = sorted((rot_tiles_dir / "tiles" / "features").glob("*.tif"))
     if not paths:
         print("  no rotated feature tiles found")
         return
 
-    datasets = [rasterio.open(p) for p in paths]
-    try:
-        merged, merged_transform = rio_merge(datasets, method="first")
-        crs = datasets[0].crs
-        nodata = datasets[0].nodata
-        band_names = [d or f"band{i+1}" for i, d in enumerate(datasets[0].descriptions)]
-    finally:
-        for ds in datasets:
-            ds.close()
+    with rasterio.open(paths[0]) as ds:
+        crs = ds.crs
+        nodata = ds.nodata
+        n_bands = ds.count
+        band_names = [d or f"band{i+1}" for i, d in enumerate(ds.descriptions)]
+
+    xmin, ymin, xmax, ymax, res = _rotated_extent(paths)
+    n_cols = int(round((xmax - xmin) / res))
+    n_rows = int(round((ymax - ymin) / res))
+    dst_transform = from_origin(xmin, ymax, res, res)
+
+    master = np.full((n_bands, n_rows, n_cols), nodata, dtype="float32")
+    for p in paths:
+        with rasterio.open(p) as ds:
+            for bi in range(n_bands):
+                reproject(
+                    source=rasterio.band(ds, bi + 1),
+                    destination=master[bi],
+                    src_transform=ds.transform,
+                    src_crs=ds.crs,
+                    dst_transform=dst_transform,
+                    dst_crs=crs,
+                    resampling=_Resampling.nearest,
+                    src_nodata=nodata,
+                    dst_nodata=nodata,
+                )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tif = out_dir / "features.tif"
-    n_bands, n_rows, n_cols = merged.shape
     profile = {
         "driver": "GTiff", "height": n_rows, "width": n_cols, "count": n_bands,
-        "dtype": "float32", "crs": crs, "transform": merged_transform,
+        "dtype": "float32", "crs": crs, "transform": dst_transform,
         "nodata": nodata, "compress": "deflate",
     }
     with rasterio.open(tif, "w", **profile) as dst:
-        dst.write(merged.astype("float32"))
+        dst.write(master)
         for i, bn in enumerate(band_names, start=1):
             dst.set_band_description(i, bn)
-    print(f"  stitched {len(paths)} rotated feature tiles -> {tif} ({n_rows}x{n_cols}px)")
+
+    for bi, bn in enumerate(band_names):
+        style = styles.get(bn)
+        if style:
+            img = colorize(
+                master[bi], nodata, style["cmap"], hillshade=style.get("hillshade", False),
+                dx=res, vert_exag=style.get("vert_exag", 5.0),
+            )
+        else:
+            img, _ = normalize_band(master[bi], nodata)
+        jp = out_dir / f"features_{bn}.jpg"
+        Image.fromarray(img).save(jp, quality=90)
+        write_worldfile(jp, dst_transform)
+        write_prj(jp, crs)
+
+    print(f"  stitched {len(paths)} rotated feature tiles -> {tif} ({n_rows}x{n_cols}px) + {n_bands} JPEG previews")
 
 
 def stitch_rotated_labels(rot_tiles_dir: Path, out_dir: Path) -> None:
-    """Stitch rotated label tiles into a North-up mosaic via rasterio.merge."""
-    from rasterio.merge import merge as rio_merge
+    """Stitch rotated label tiles into a North-up mosaic by reprojecting each tile."""
+    from rasterio.warp import reproject, Resampling as _Resampling
+    from rasterio.transform import from_origin
     paths = sorted((rot_tiles_dir / "tiles" / "labels").glob("*.tif"))
     if not paths:
         print("  no rotated label tiles found")
         return
 
-    datasets = [rasterio.open(p) for p in paths]
-    try:
-        merged, merged_transform = rio_merge(datasets, method="first")
-        crs = datasets[0].crs
-        nodata = int(datasets[0].nodata) if datasets[0].nodata is not None else 0
-    finally:
-        for ds in datasets:
-            ds.close()
+    with rasterio.open(paths[0]) as ds:
+        crs = ds.crs
+        nodata = int(ds.nodata) if ds.nodata is not None else 0
+
+    xmin, ymin, xmax, ymax, res = _rotated_extent(paths)
+    n_cols = int(round((xmax - xmin) / res))
+    n_rows = int(round((ymax - ymin) / res))
+    dst_transform = from_origin(xmin, ymax, res, res)
+
+    master = np.full((n_rows, n_cols), nodata, dtype="uint8")
+    for p in paths:
+        with rasterio.open(p) as ds:
+            dst_band = np.full((n_rows, n_cols), nodata, dtype="float32")
+            reproject(
+                source=rasterio.band(ds, 1),
+                destination=dst_band,
+                src_transform=ds.transform,
+                src_crs=ds.crs,
+                dst_transform=dst_transform,
+                dst_crs=crs,
+                resampling=_Resampling.nearest,
+                src_nodata=float(nodata),
+                dst_nodata=float(nodata),
+            )
+            valid = dst_band != nodata
+            master[valid] = dst_band[valid].astype("uint8")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tif = out_dir / "labels.tif"
-    n_rows, n_cols = merged.shape[1], merged.shape[2]
     profile = {
         "driver": "GTiff", "height": n_rows, "width": n_cols, "count": 1,
-        "dtype": "uint8", "crs": crs, "transform": merged_transform,
+        "dtype": "uint8", "crs": crs, "transform": dst_transform,
         "nodata": nodata, "compress": "deflate",
     }
     with rasterio.open(tif, "w", **profile) as dst:
-        dst.write(merged[0].astype("uint8"), 1)
-    print(f"  stitched {len(paths)} rotated label tiles -> {tif} ({n_rows}x{n_cols}px)")
+        dst.write(master, 1)
+
+    jp = out_dir / "labels.jpg"
+    Image.fromarray(label_to_rgb(master)).save(jp, quality=90)
+    write_worldfile(jp, dst_transform)
+    write_prj(jp, crs)
+    print(f"  stitched {len(paths)} rotated label tiles -> {tif} ({n_rows}x{n_cols}px) + colorized JPEG")
 
 
 def main(argv=None) -> None:
