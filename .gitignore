@@ -2,6 +2,9 @@
 # HEAVY / NON-RELATED
 #####################
 .venv
+venv
+dev/
+pyvenv.cfg
 .DS_Store
 outputs/
 __pycache__/

@@ -99,7 +99,29 @@ Bedrock-Classification/
 
 ## Setup
 
-**Prerequisites:** Python 3.10+, Git
+**Prerequisites:** Python 3.10+, Git, [Git LFS](https://git-lfs.github.com)
+
+### Git LFS (required for all contributors)
+
+This repo uses Git LFS to store large binary files (`.tif` tiles, `.jpg` renders, `.xyz`
+point clouds). Without LFS installed, you will get small text pointer files instead of the
+actual data.
+
+```powershell
+# Install Git LFS once per machine (if not already installed)
+winget install GitHub.GitLFS
+
+# Enable LFS in your local clone (run once after cloning)
+git lfs install
+
+# Pull all LFS-tracked files
+git lfs pull
+```
+
+When you commit new `.tif`, `.jpg`, or `.xyz` files, Git LFS handles them automatically —
+no extra steps needed beyond the normal `git add` / `git commit` workflow.
+
+### Python environment
 
 ```powershell
 # Clone and enter the repo
