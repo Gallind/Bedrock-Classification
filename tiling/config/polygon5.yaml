@@ -29,6 +29,17 @@ layers:
     native_res_m: 1.0
     cmap: YlOrRd
 
+# The annotation MBR is a narrow strip (~872 x 157 m), barely wider than a 128 m
+# tile, so the default +/-8 deg jitter passes fit almost no tiles (4 of 12). Smaller
+# angles keep nearly the full base grid while still adding rotation diversity beyond
+# the training-time D4 ops (which only cover 90 deg multiples).
+augmentation:
+  passes:
+    - {theta_offset_deg: -2.0, u_shift_frac: 0.0,  v_shift_frac: 0.0}
+    - {theta_offset_deg:  2.0, u_shift_frac: 0.0,  v_shift_frac: 0.0}
+    - {theta_offset_deg:  0.0, u_shift_frac: 0.25, v_shift_frac: 0.25}
+    - {theta_offset_deg: -1.5, u_shift_frac: 0.25, v_shift_frac: 0.0}
+
 labels:
   kind: shapefile_per_class
   polygonize: false            # already polygons / multipolygons
