@@ -67,7 +67,7 @@ $env:PYTHONPATH="tiling\src"; .venv\Scripts\python -m seabed_tiler.stitch --tile
 
 ### Data
 
-`DataBase/` holds four survey polygons (polygon1, polygon3, polygon4, polygon5). `.xyz` files are gitignored (large point grids). Each polygon has co-located layers:
+`DataBase/` holds four survey polygons (polygon1, polygon3, polygon4, polygon5). All raw data is in the repo: shapefiles in plain git, `.xyz` point grids and `.jpg` renders via Git LFS. Each polygon has co-located layers:
 - **Bathymetry** — `.xyz` (X Y Z) or `.jpg` render
 - **Backscatter** — `.xyz` or `.jpg` render
 - **Slope** — `.xyz`
@@ -115,4 +115,4 @@ Copy an existing polygon YAML, set `name`, `src_dir`, and update `layers` + `lab
 - Valid pixel: a pixel is valid only where **every** feature band has real data (no nodata, no NaN).
 - PYTHONPATH must include `tiling/src` for all module invocations (no install step).
 - Augmentation: only rigid geometric transforms (D4 ops, rotated re-extraction passes). Photometric changes (brightness, depth offsets, zoom, noise) are prohibited — pixel values are physical measurements. Raw `DataBase/` bundles are read-only. See `docs/DATA_AUGMENTATION.md`.
-- `.xyz` files are gitignored — they must be present locally from the IOLR data delivery.
+- `.xyz` files are tracked via Git LFS like the other rasters — `git lfs pull` brings the complete raw dataset; nothing needs to be obtained out-of-band.
