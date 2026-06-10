@@ -33,11 +33,19 @@ git lfs pull
 
 New `.tif`, `.jpg`, and `.xyz` files are handled automatically on `git add` — no extra steps.
 
+Storage policy: only raw `DataBase/` inputs are versioned (via LFS). Generated `outputs/` are never committed — they are deterministic and every contributor regenerates them by re-running the tiler. Share frozen dataset releases via external storage, not git.
+
 ## Running the Tiler
 
 ```powershell
 # Tile a polygon (outputs to outputs/<name>/<run-tag>/)
 $env:PYTHONPATH="tiling\src"; .venv\Scripts\python -m seabed_tiler --config tiling\config\polygon1.yaml
+
+# Rotation-aware tiles aligned to the annotation MBR (-> <run-tag>_rot/)
+$env:PYTHONPATH="tiling\src"; .venv\Scripts\python -m seabed_tiler --config tiling\config\polygon1.yaml --rotated
+
+# Deterministic augmentation passes (-> <run-tag>_rotaug/). Rules: docs/DATA_AUGMENTATION.md
+$env:PYTHONPATH="tiling\src"; .venv\Scripts\python -m seabed_tiler --config tiling\config\polygon1.yaml --augment
 
 # Convert tiles to viewable JPEGs
 $env:PYTHONPATH="tiling\src"; .venv\Scripts\python -m seabed_tiler.to_jpg --tiles-dir outputs\polygon1
@@ -106,4 +114,5 @@ Copy an existing polygon YAML, set `name`, `src_dir`, and update `layers` + `lab
 - Nodata: `feature_nodata = -9999.0` (float32 layers), `label_nodata = 0` (uint8 labels).
 - Valid pixel: a pixel is valid only where **every** feature band has real data (no nodata, no NaN).
 - PYTHONPATH must include `tiling/src` for all module invocations (no install step).
+- Augmentation: only rigid geometric transforms (D4 ops, rotated re-extraction passes). Photometric changes (brightness, depth offsets, zoom, noise) are prohibited — pixel values are physical measurements. Raw `DataBase/` bundles are read-only. See `docs/DATA_AUGMENTATION.md`.
 - `.xyz` files are gitignored — they must be present locally from the IOLR data delivery.
