@@ -29,6 +29,14 @@ def main(argv=None) -> None:
         help="Also produce rotation-aware tiles aligned to the annotation footprint "
              "MBR (outputs to <run_tag>_rot/). Does not replace the standard output.",
     )
+    parser.add_argument(
+        "--augment",
+        action="store_true",
+        help="Run the deterministic augmentation passes from the config "
+             "(augmentation.passes): re-extract the rotated grid at jittered angles "
+             "and shifted origins (outputs to <run_tag>_rotaug/). "
+             "See docs/DATA_AUGMENTATION.md.",
+    )
     args = parser.parse_args(argv)
 
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
@@ -84,6 +92,31 @@ def main(argv=None) -> None:
         jpg_out = rot_out / "jpg"
         convert_features(rot_out, jpg_out, limit=None, worldfile=True, styles=styles)
         convert_labels(rot_out, jpg_out, limit=None, worldfile=True)
+        print(f"[+] jpg tiles -> {jpg_out}")
+
+    if args.augment:
+        from .rotated_tiler import _augmented_out_dir, run_augmented_tiling
+        from .to_jpg import convert_features, convert_labels
+        from .viz import resolve_styles
+        cfg.augmentation.enabled = True
+        if not cfg.augmentation.passes:
+            raise SystemExit(
+                "--augment requires augmentation.passes in the config "
+                "(see tiling/config/default.yaml)"
+            )
+        print(f"[+] augmentation: {len(cfg.augmentation.passes)} passes ...")
+        aug_rows, _ = run_augmented_tiling(cfg, grid)
+        aug_out = _augmented_out_dir(cfg)
+        aug_out.mkdir(parents=True, exist_ok=True)
+        res = cfg.target_resolution_m
+        tpx = int(round(cfg.tile_size_m / res))
+        write_rotated_manifest(aug_rows, aug_out, grid["crs"], res, tpx)
+        print(f"[+] augmented: {len(aug_rows)} tiles -> {aug_out}")
+        print("[+] converting augmented tiles to JPEGs ...")
+        styles = resolve_styles(args.config)
+        jpg_out = aug_out / "jpg"
+        convert_features(aug_out, jpg_out, limit=None, worldfile=True, styles=styles)
+        convert_labels(aug_out, jpg_out, limit=None, worldfile=True)
         print(f"[+] jpg tiles -> {jpg_out}")
 
 
