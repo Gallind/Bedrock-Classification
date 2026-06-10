@@ -151,13 +151,18 @@ def build_rotated_windows(
     theta: float,
     tile_size_m: float,
     stride_m: float,
+    u_offset: float = 0.0,
+    v_offset: float = 0.0,
 ) -> list[RotatedTileWindow]:
     """Generate the overlapping tile grid in the MBR's local (u, v) coordinate frame.
 
     mbr_corners: (4, 2) array of MBR corner UTM coords from minimum_bounding_rect().
     theta: rotation angle of the MBR long axis from UTM East (radians).
     u is along the long axis, v is perpendicular (CCW 90 from u).
-    Only fully-contained tiles are emitted (no partial edges).
+    u_offset / v_offset shift the grid start positions (augmentation passes use
+    fractions of the stride); defaults of 0 reproduce the unshifted grid exactly.
+    Only fully-contained tiles are emitted (no partial edges) -- offsets that push
+    a start position outside the MBR are walked back inside by whole strides.
     """
     c, s = math.cos(theta), math.sin(theta)
 
@@ -170,14 +175,19 @@ def build_rotated_windows(
 
     windows: list[RotatedTileWindow] = []
     eps = 1e-6
+    u_start = u_min + u_offset
+    while u_start < u_min - eps:
+        u_start += stride_m
     row = 0
-    v_top = v_max
+    v_top = v_max + v_offset
+    while v_top > v_max + eps:
+        v_top -= stride_m
     while True:
         v_bot = v_top - tile_size_m
         if v_bot < v_min - eps:
             break
         col = 0
-        u_left = u_min
+        u_left = u_start
         while True:
             u_right = u_left + tile_size_m
             if u_right > u_max + eps:

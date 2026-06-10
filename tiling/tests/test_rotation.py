@@ -170,6 +170,52 @@ def test_build_rotated_windows_stores_theta():
     assert all(isinstance(w, RotatedTileWindow) for w in wins)
 
 
+def test_build_rotated_windows_zero_offset_reproduces_default_grid():
+    """u_offset=v_offset=0 must produce exactly the same windows as no offsets
+    (regression guard for the augmentation origin-shift feature)."""
+    corners = np.array([(0.0, 0.0), (256.0, 0.0), (256.0, 256.0), (0.0, 256.0)])
+    base = build_rotated_windows(corners, theta=0.2, tile_size_m=128.0, stride_m=64.0)
+    shifted = build_rotated_windows(
+        corners, theta=0.2, tile_size_m=128.0, stride_m=64.0,
+        u_offset=0.0, v_offset=0.0,
+    )
+    assert base == shifted
+
+
+def test_build_rotated_windows_offset_shifts_all_origins():
+    """A (u, v) origin offset must shift every window by exactly that amount."""
+    corners = np.array([(0.0, 0.0), (400.0, 0.0), (400.0, 400.0), (0.0, 400.0)])
+    base = build_rotated_windows(corners, theta=0.0, tile_size_m=100.0, stride_m=50.0)
+    shifted = build_rotated_windows(
+        corners, theta=0.0, tile_size_m=100.0, stride_m=50.0,
+        u_offset=25.0, v_offset=-10.0,
+    )
+    assert len(shifted) > 0
+    base_by_rc = {(w.row, w.col): w for w in base}
+    for w in shifted:
+        b = base_by_rc.get((w.row, w.col))
+        if b is None:
+            continue  # shifted grid may drop trailing tiles near the far edge
+        assert w.u_origin - b.u_origin == pytest.approx(25.0)
+        assert w.v_origin - b.v_origin == pytest.approx(-10.0)
+
+
+def test_build_rotated_windows_offset_keeps_full_containment():
+    """Offset windows must still lie fully inside the MBR (no partial tiles)."""
+    corners = np.array([(100.0, 200.0), (500.0, 200.0), (500.0, 600.0), (100.0, 600.0)])
+    tile_size = 100.0
+    wins = build_rotated_windows(
+        corners, theta=0.0, tile_size_m=tile_size, stride_m=50.0,
+        u_offset=30.0, v_offset=-20.0,
+    )
+    assert len(wins) > 0
+    for w in wins:
+        assert w.u_origin >= 100.0 - 1e-6
+        assert w.u_origin + tile_size <= 500.0 + 1e-6
+        assert w.v_origin - tile_size >= 200.0 - 1e-6
+        assert w.v_origin <= 600.0 + 1e-6
+
+
 def test_extract_rotated_tile_theta_zero_equals_direct_slice():
     """At theta=0 the extracted tile must equal a direct numpy array slice."""
     from rasterio.crs import CRS
