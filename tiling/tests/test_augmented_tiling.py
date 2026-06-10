@@ -6,9 +6,11 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pytest
+import rasterio
 from affine import Affine
 from rasterio.crs import CRS
-from shapely.geometry import box
+from shapely.affinity import rotate
+from shapely.geometry import Point, box
 
 from seabed_tiler.config import Config
 from seabed_tiler.rotated_tiler import run_augmented_tiling, run_rotated_tiling
@@ -144,3 +146,115 @@ def test_augmentation_disabled_raises(cfg_and_grid):
     cfg.augmentation.enabled = False
     with pytest.raises(ValueError, match="augmentation"):
         run_augmented_tiling(cfg, grid)
+
+
+def test_augmented_run_removes_stale_outputs_from_previous_runs(cfg_and_grid):
+    """Re-running --augment must not leave tiles from a previous (different) run on
+    disk: to_jpg converts every tif it finds, so orphans keep showing up in the JPEG
+    previews even though the manifest no longer lists them."""
+    cfg, grid = cfg_and_grid
+    out = cfg.base_dir / "outputs" / "testpoly" / (cfg.run_tag + "_rotaug")
+    stale = out / "tiles" / "features" / "testpoly_p99_r999_c999.tif"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"stale")
+    stale_jpg = out / "jpg" / "labels" / "testpoly_p99_r999_c999.jpg"
+    stale_jpg.parent.mkdir(parents=True)
+    stale_jpg.write_bytes(b"stale")
+    rows, _ = run_augmented_tiling(cfg, grid)
+    assert len(rows) > 0
+    assert not stale.exists()
+    assert not stale_jpg.exists()
+
+
+def test_rotated_run_removes_stale_outputs_from_previous_runs(cfg_and_grid):
+    cfg, grid = cfg_and_grid
+    out = cfg.base_dir / "outputs" / "testpoly" / (cfg.run_tag + "_rot")
+    stale = out / "tiles" / "labels" / "testpoly_r999_c999.tif"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"stale")
+    rows, _ = run_rotated_tiling(cfg, grid)
+    assert len(rows) > 0
+    assert not stale.exists()
+
+
+def test_jittered_pass_tiles_stay_inside_label_mbr(cfg_and_grid):
+    """Pass 2 (theta offset 6 deg) tiles must lie fully inside the annotation MBR.
+    Tiles spilling past the MBR fall outside the surveyed data and ship dead
+    (nodata) areas into the training set."""
+    cfg, grid = cfg_and_grid
+    rows, _ = run_augmented_tiling(cfg, grid)
+    mbr = box(4.0, 4.0, 60.0, 60.0).buffer(1e-6)  # fixture label footprint
+    pass2 = [r for r in rows if r["aug_pass"] == 2]
+    assert len(pass2) > 0
+    for r in pass2:
+        c = math.cos(math.radians(r["theta_deg"]))
+        s = math.sin(math.radians(r["theta_deg"]))
+        for du in (0.0, cfg.tile_size_m):
+            for dv in (0.0, -cfg.tile_size_m):
+                u, v = r["u_origin"] + du, r["v_origin"] + dv
+                x, y = u * c - v * s, u * s + v * c
+                assert mbr.contains(Point(x, y)), (
+                    f"{r['tile_id']} corner ({x:.1f}, {y:.1f}) outside annotation MBR"
+                )
+
+
+def test_base_and_augmented_runs_use_same_feature_resampling(tmp_path):
+    """An augmentation pass with zero offsets reproduces the base rotated grid, so
+    its feature tiles must be pixel-identical to the base run's. A mismatch means
+    the two runs resample differently, making augmented tiles statistically
+    distinguishable from base tiles (texture domain shift in the training set)."""
+    src_dir = tmp_path / "DataBase" / "rotpoly"
+    src_dir.mkdir(parents=True)
+    footprint = rotate(box(12.0, 20.0, 52.0, 44.0), 30.0, origin="centroid")
+    gdf = gpd.GeoDataFrame({"NAME": ["rock"], "geometry": [footprint]}, crs="EPSG:32636")
+    gdf.to_file(src_dir / "labels.shp", driver="ESRI Shapefile")
+
+    cfg = Config(
+        name="rotpoly",
+        src_dir="DataBase/rotpoly",
+        target_resolution_m=1.0,
+        tile_size_m=16.0,
+        overlap=0.5,
+        band_order=["bathymetry"],
+        layers=[{"name": "bathymetry", "kind": "xyz", "path": "bathy.xyz"}],
+        labels={
+            "kind": "shapefile",
+            "path": "labels.shp",
+            "classes": {"rock": 1, "shallow_rock": 2, "sand": 3},
+            "rules": [{"pattern": "rock", "class": "rock"}],
+        },
+        augmentation={
+            "enabled": True,
+            "passes": [{"theta_offset_deg": 0.0, "u_shift_frac": 0.0, "v_shift_frac": 0.0}],
+        },
+    )
+    cfg.base_dir = tmp_path
+
+    rng = np.random.default_rng(0)
+    grid = {
+        "transform": Affine(1.0, 0.0, 0.0, 0.0, -1.0, float(GRID_PX)),
+        "crs": CRS.from_epsg(32636),
+        "nodata": -9999.0,
+        "shape": (GRID_PX, GRID_PX),
+        "features": {"bathymetry": rng.normal(-30.0, 2.0, size=(GRID_PX, GRID_PX)).astype("float32")},
+        "label": np.ones((GRID_PX, GRID_PX), dtype="uint8"),
+    }
+
+    base_rows, _ = run_rotated_tiling(cfg, grid)
+    aug_rows, _ = run_augmented_tiling(cfg, grid)
+    base_by_rc = {(r["row"], r["col"]): r for r in base_rows}
+    checked = 0
+    for r in aug_rows:
+        b = base_by_rc.get((r["row"], r["col"]))
+        if b is None:
+            continue
+        with rasterio.open(tmp_path / r["features_path"]) as src:
+            aug_tile = src.read()
+        with rasterio.open(tmp_path / b["features_path"]) as src:
+            base_tile = src.read()
+        np.testing.assert_array_equal(
+            aug_tile, base_tile,
+            err_msg=f"{r['tile_id']} differs from base {b['tile_id']}",
+        )
+        checked += 1
+    assert checked > 0

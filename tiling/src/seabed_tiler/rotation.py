@@ -27,8 +27,9 @@ from pathlib import Path
 from affine import Affine
 import geopandas as gpd
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
+from shapely.prepared import prep
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
@@ -157,12 +158,23 @@ def build_rotated_windows(
     """Generate the overlapping tile grid in the MBR's local (u, v) coordinate frame.
 
     mbr_corners: (4, 2) array of MBR corner UTM coords from minimum_bounding_rect().
-    theta: rotation angle of the MBR long axis from UTM East (radians).
+    theta: rotation angle of the tile grid from UTM East (radians). May differ from
+    the MBR's own orientation (augmentation theta jitter).
     u is along the long axis, v is perpendicular (CCW 90 from u).
     u_offset / v_offset shift the grid start positions (augmentation passes use
     fractions of the stride); defaults of 0 reproduce the unshifted grid exactly.
-    Only fully-contained tiles are emitted (no partial edges) -- offsets that push
-    a start position outside the MBR are walked back inside by whole strides.
+    Only tiles fully contained in the MBR polygon are emitted (no partial edges).
+    When theta differs from the MBR orientation, the u/v extent of the projected
+    corners is the bounding box of the tilted MBR -- larger than the MBR itself --
+    so each candidate is additionally tested against the MBR polygon; tiles outside
+    it would fall outside the surveyed data and ship dead (nodata) pixels.
+
+    The grid anchor phase (where the first row/col starts, within one stride) is
+    searched at stride/8 granularity to maximize the number of contained tiles:
+    a corner-anchored grid can miss a narrow tilted MBR entirely even though
+    shifted rows would fit. Ties keep the smallest phase, so grids aligned with
+    the MBR stay anchored at the MBR corner exactly as before. u_offset/v_offset
+    are applied after phase selection as exact additional shifts.
     """
     c, s = math.cos(theta), math.sin(theta)
 
@@ -173,38 +185,64 @@ def build_rotated_windows(
     u_min, u_max = float(us.min()), float(us.max())
     v_min, v_max = float(vs.min()), float(vs.max())
 
-    windows: list[RotatedTileWindow] = []
+    # Buffer absorbs float noise for tile corners lying exactly on the MBR edge.
+    mbr_poly = prep(Polygon(mbr_corners).buffer(1e-6))
     eps = 1e-6
-    u_start = u_min + u_offset
-    while u_start < u_min - eps:
-        u_start += stride_m
-    row = 0
-    v_top = v_max + v_offset
-    while v_top > v_max + eps:
-        v_top -= stride_m
-    while True:
-        v_bot = v_top - tile_size_m
-        if v_bot < v_min - eps:
-            break
-        col = 0
-        u_left = u_start
+
+    def contained(u_left: float, u_right: float, v_bot: float, v_top: float) -> bool:
+        for u, v in ((u_left, v_top), (u_right, v_top), (u_left, v_bot), (u_right, v_bot)):
+            if not mbr_poly.contains(Point(u * c - v * s, u * s + v * c)):
+                return False
+        return True
+
+    def emit(u_start: float, v_start: float) -> list[RotatedTileWindow]:
+        while u_start < u_min - eps:
+            u_start += stride_m
+        while v_start > v_max + eps:
+            v_start -= stride_m
+        windows: list[RotatedTileWindow] = []
+        row = 0
+        v_top = v_start
         while True:
-            u_right = u_left + tile_size_m
-            if u_right > u_max + eps:
+            v_bot = v_top - tile_size_m
+            if v_bot < v_min - eps:
                 break
-            windows.append(RotatedTileWindow(
-                row=row, col=col,
-                u_origin=u_left, v_origin=v_top,
-                theta=theta,
-            ))
-            col += 1
-            u_left += stride_m
-        row += 1
-        v_top -= stride_m
+            col = 0
+            u_left = u_start
+            while True:
+                u_right = u_left + tile_size_m
+                if u_right > u_max + eps:
+                    break
+                if contained(u_left, u_right, v_bot, v_top):
+                    windows.append(RotatedTileWindow(
+                        row=row, col=col,
+                        u_origin=u_left, v_origin=v_top,
+                        theta=theta,
+                    ))
+                col += 1
+                u_left += stride_m
+            row += 1
+            v_top -= stride_m
+        return windows
+
+    n_phases = 8
+    phase_step = stride_m / n_phases
+    best_phase = (0.0, 0.0)
+    best_count = len(emit(u_min, v_max))
+    for i in range(n_phases):
+        for j in range(n_phases):
+            if i == 0 and j == 0:
+                continue
+            count = len(emit(u_min + j * phase_step, v_max - i * phase_step))
+            if count > best_count:
+                best_count = count
+                best_phase = (j * phase_step, i * phase_step)
+
+    windows = emit(u_min + best_phase[0] + u_offset, v_max - best_phase[1] + v_offset)
 
     logger.info(
-        "rotated grid: %d windows (tile=%.0fm stride=%.0fm theta=%.1f deg)",
-        len(windows), tile_size_m, stride_m, math.degrees(theta),
+        "rotated grid: %d windows (tile=%.0fm stride=%.0fm theta=%.1f deg, anchor phase u=%.1fm v=%.1fm)",
+        len(windows), tile_size_m, stride_m, math.degrees(theta), best_phase[0], best_phase[1],
     )
     return windows
 

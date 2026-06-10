@@ -14,7 +14,7 @@ from rasterio.windows import transform as window_transform
 
 from .config import Config
 from .grid import build_windows
-from .io_utils import feature_profile, label_profile, tile_id
+from .io_utils import clean_run_dir, feature_profile, label_profile, tile_id
 
 
 def run_tiling(cfg: Config, grid: dict) -> tuple[list[dict], list]:
@@ -36,6 +36,7 @@ def run_tiling(cfg: Config, grid: dict) -> tuple[list[dict], list]:
     inv_classes = {v: k for k, v in cfg.labels.classes.items()}
     n_classes = max(cfg.labels.classes.values()) + 1
 
+    clean_run_dir(cfg.out_dir)
     feat_dir = cfg.out_dir / "tiles" / "features"
     lab_dir = cfg.out_dir / "tiles" / "labels"
     feat_dir.mkdir(parents=True, exist_ok=True)

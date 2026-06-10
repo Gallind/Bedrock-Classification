@@ -24,7 +24,7 @@ import rasterio
 from rasterio.enums import Resampling
 
 from .config import Config
-from .io_utils import feature_profile, label_profile, tile_id
+from .io_utils import clean_run_dir, feature_profile, label_profile, tile_id
 from .rotation import (
     RotatedTileWindow,
     build_rotated_windows,
@@ -171,10 +171,13 @@ def run_rotated_tiling(cfg: Config, grid: dict) -> tuple[list[dict], list[Rotate
     windows = build_rotated_windows(mbr_corners, theta, cfg.tile_size_m, cfg.stride_m)
 
     out_dir = _rotated_out_dir(cfg)
+    clean_run_dir(out_dir)
+    # Bilinear matches the augmentation passes: base and augmented tiles must share
+    # one feature resampling or the model can tell them apart by texture smoothness.
     rows = _process_windows(
         cfg, grid, windows, out_dir,
         id_prefix=cfg.name,
-        features_resampling=Resampling.nearest,
+        features_resampling=Resampling.bilinear,
     )
     logger.info("rotated tiling complete: %d tiles written -> %s", len(rows), out_dir)
     return rows, windows
@@ -198,6 +201,8 @@ def run_augmented_tiling(cfg: Config, grid: dict) -> tuple[list[dict], list[Rota
 
     theta, mbr_corners = _footprint_mbr(cfg)
     out_dir = _augmented_out_dir(cfg)
+    # Clean once before the pass loop -- every pass writes into the same directory.
+    clean_run_dir(out_dir)
 
     all_rows: list[dict] = []
     all_windows: list[RotatedTileWindow] = []
