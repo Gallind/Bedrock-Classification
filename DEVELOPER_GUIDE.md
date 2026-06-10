@@ -175,6 +175,24 @@ The run_tag in the output folder name encodes the key parameters:
 .venv\Scripts\python -m seabed_tiler.stitch --tiles-dir outputs/polygon1
 ```
 
+**Rotation-aware tiling and data augmentation:**
+
+```powershell
+# MBR-aligned rotated tiles (outputs/<name>/<run_tag>_rot/)
+.venv\Scripts\python -m seabed_tiler --config tiling/config/polygon1.yaml --rotated
+
+# Deterministic augmentation passes (outputs/<name>/<run_tag>_rotaug/)
+.venv\Scripts\python -m seabed_tiler --config tiling/config/polygon1.yaml --augment
+```
+
+Augmentation re-extracts the rotated tile grid at jittered angles and shifted
+origins (defined in `augmentation.passes` in `tiling/config/default.yaml`), and
+`seabed_tiler/augment.py` provides exact D4 flip/rotation ops for training time.
+**Read `docs/DATA_AUGMENTATION.md` before touching augmentation or building a
+train/val/test split** -- it defines which transforms are physically valid for
+MBES data, why raw `DataBase/` bundles must never be edited, and the spatial
+split rules that prevent train/test leakage.
+
 ---
 
 ## Running Tests
