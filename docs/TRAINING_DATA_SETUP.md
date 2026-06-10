@@ -51,7 +51,14 @@ Each polygon produces three run directories under `outputs/<polygon>/`:
 | `t128m_o50pct_r1m_rot` | grid aligned to the annotation footprint | base train/val/test tiles |
 | `t128m_o50pct_r1m_rotaug` | deterministic augmentation passes | training split ONLY |
 
-Re-runs delete and rewrite each run directory, so outputs never go stale.
+**Already generated outputs before? No manual cleanup is needed.** Every run
+deletes its own run directory before writing, so re-running on a newer commit
+fully replaces stale tiles. (Earlier versions of the tiler only overwrote files
+they rewrote, which left orphan tiles from previous runs on disk -- that bug is
+fixed in code. If you generated outputs on a commit older than this guide,
+simply re-run the command above.) Run directories for other tile geometries
+(different `run_tag`) are kept intentionally for side-by-side comparison.
+
 JPEG previews of every tile are written to `<run dir>/jpg/` for visual inspection.
 
 ## 5. Verify your dataset
