@@ -58,7 +58,15 @@ label tile:
    pass is a genuine resampling of the source data. Passes are deterministic and
    listed explicitly in `tiling/config/default.yaml` under `augmentation.passes`,
    so every re-run produces identical tiles. Features are warped bilinear, labels
-   nearest (class ids never interpolate).
+   nearest (class ids never interpolate); the base `_rot` run uses the same
+   feature resampling so base and augmented tiles are statistically
+   indistinguishable. Jittered grids are clipped to the annotation MBR polygon --
+   no tile may extend past the annotated footprint, where data runs out and tiles
+   would carry large dead (nodata) regions. The grid anchor is chosen
+   deterministically (searched at stride/8 granularity) to maximize the number of
+   fully-contained tiles, so narrow survey strips still tile well under jitter;
+   per-polygon configs may override `augmentation.passes` with smaller angles when
+   the MBR is barely wider than a tile (see `polygon5.yaml`).
 2. **Training-time D4 transforms** (`seabed_tiler/augment.py`): the 8 ops of the
    dihedral group (identity, three 90-degree rotations, two flips, two
    transpositions). These are exact index permutations with zero interpolation.
@@ -78,6 +86,13 @@ label tile:
 3. Every rotated/augmented manifest row carries `center_x` / `center_y` (tile
    center, UTM EPSG:32636) precisely so splits can be assigned by location.
    The `aug_pass` column identifies which pass produced a tile.
+4. **Mask the loss by feature validity.** `label_nodata = 0` is the same value as
+   the background class, so a pixel outside the surveyed data is indistinguishable
+   from labeled background in the label tile alone. Tiles only need
+   `min_valid_frac` (default 0.5) valid pixels to pass the filter, so a tile can
+   legitimately contain dead regions. The training loss must ignore every pixel
+   where any feature band is nodata (-9999.0) or NaN -- otherwise the model is
+   taught that "no data" means "background seabed".
 
 ## Honest accounting
 
