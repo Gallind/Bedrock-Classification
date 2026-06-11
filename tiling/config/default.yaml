@@ -13,6 +13,19 @@ filters:
   min_valid_frac: 0.5      # drop tiles with fewer than this fraction of valid feature pixels
   require_label: true      # drop tiles that contain no labeled (non-background) pixels
 
+# Source-level augmentation: re-extract the rotated tile grid at jittered angles and
+# shifted origins (genuine resampling of source data, not copies of existing tiles).
+# Passes are deterministic and explicit so every re-run produces identical tiles.
+# Run with --augment. See docs/DATA_AUGMENTATION.md for the rules (what is allowed,
+# what is prohibited, and how train/val/test splits must treat augmented tiles).
+augmentation:
+  enabled: false
+  passes:
+    - {theta_offset_deg: -8.0, u_shift_frac: 0.0,  v_shift_frac: 0.0}
+    - {theta_offset_deg:  8.0, u_shift_frac: 0.0,  v_shift_frac: 0.0}
+    - {theta_offset_deg:  0.0, u_shift_frac: 0.25, v_shift_frac: 0.25}
+    - {theta_offset_deg: -4.0, u_shift_frac: 0.25, v_shift_frac: 0.0}
+
 output:
   dir: outputs             # tiles land in <dir>/<polygon name>/...
   features_dtype: float32

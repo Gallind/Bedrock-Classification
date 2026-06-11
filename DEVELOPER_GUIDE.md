@@ -45,7 +45,7 @@ geospatial deep learning.
 
 ```
 Bedrock-Classification/
-├── DataBase/                 # Raw survey data (gitignored *.xyz, *.jpg files)
+├── DataBase/                 # Raw survey data (.xyz/.jpg via Git LFS, shapefiles in git)
 │   ├── polygon1/
 │   ├── polygon3/
 │   ├── polygon4/
@@ -127,16 +127,19 @@ no extra steps needed beyond the normal `git add` / `git commit` workflow.
 # Clone and enter the repo
 cd c:\Dev\Bedrock-Classification
 
-# Create and activate virtual environment
-python -m venv venv
-.\venv\Scripts\Activate.ps1
+# Create the virtual environment (the repo convention is .venv)
+python -m venv .venv
 
 # Install dependencies
-pip install -r tiling/requirements.txt
+.venv\Scripts\python -m pip install -r tiling/requirements.txt
 ```
 
-**Raw data files** (not in git — large binary/point files) must be placed in `DataBase/`
-following the per-polygon structure described in each YAML config under `tiling/config/`.
+**Raw data files** are all in the repo: shapefiles in plain git, `.xyz` point grids and
+`.jpg` renders via Git LFS. After `git lfs pull` the `DataBase/` folder is complete --
+nothing needs to be obtained out-of-band.
+
+**Just want to recreate the training dataset?** Follow the focused guide:
+`docs/TRAINING_DATA_SETUP.md`.
 
 ---
 
@@ -175,6 +178,24 @@ The run_tag in the output folder name encodes the key parameters:
 .venv\Scripts\python -m seabed_tiler.stitch --tiles-dir outputs/polygon1
 ```
 
+**Rotation-aware tiling and data augmentation:**
+
+```powershell
+# MBR-aligned rotated tiles (outputs/<name>/<run_tag>_rot/)
+.venv\Scripts\python -m seabed_tiler --config tiling/config/polygon1.yaml --rotated
+
+# Deterministic augmentation passes (outputs/<name>/<run_tag>_rotaug/)
+.venv\Scripts\python -m seabed_tiler --config tiling/config/polygon1.yaml --augment
+```
+
+Augmentation re-extracts the rotated tile grid at jittered angles and shifted
+origins (defined in `augmentation.passes` in `tiling/config/default.yaml`), and
+`seabed_tiler/augment.py` provides exact D4 flip/rotation ops for training time.
+**Read `docs/DATA_AUGMENTATION.md` before touching augmentation or building a
+train/val/test split** -- it defines which transforms are physically valid for
+MBES data, why raw `DataBase/` bundles must never be edited, and the spatial
+split rules that prevent train/test leakage.
+
 ---
 
 ## Running Tests
@@ -187,6 +208,10 @@ $env:PYTHONPATH = "tiling/src"
 Tests cover:
 - `test_grid.py` — tile window math (overlap, stride, edge handling)
 - `test_labels.py` — shapefile classification rules, geometry repair
+- `test_rotation.py` — MBR geometry, rotated grids, MBR containment, tile warping
+- `test_augment.py` — training-time D4 transform ops
+- `test_config_augmentation.py` — augmentation pass config validation
+- `test_augmented_tiling.py` — augmented tiling loop, resampling consistency, stale-output cleanup
 
 ---
 
@@ -299,7 +324,10 @@ Each tile is a pair of co-registered GeoTIFFs:
 
 **Labels TIF** — single band uint8
 - Pixel values: 0=background, 1=rock, 2=shallow_rock, 3=sand
-- Nodata value: 255 (outside all label polygons)
+- Nodata value: 0 -- the SAME value as the background class. A pixel outside the
+  surveyed data is indistinguishable from labeled background in the label tile
+  alone; the training loss must be masked wherever any feature band is nodata
+  (see rule 4 in `docs/DATA_AUGMENTATION.md`)
 - Spatial extent and resolution are identical to the paired features TIF
 
 ---

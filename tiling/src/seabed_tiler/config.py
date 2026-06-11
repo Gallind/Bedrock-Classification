@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class LayerConfig(BaseModel):
@@ -75,6 +75,38 @@ class OutputConfig(BaseModel):
     write_preview_png: bool = False
 
 
+class AugPass(BaseModel):
+    """One deterministic augmentation pass: re-extract the rotated tile grid with
+    the MBR angle shifted by theta_offset_deg and the grid origin shifted by
+    (u_shift_frac, v_shift_frac) fractions of the stride along the rotated axes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    theta_offset_deg: float = Field(default=0.0, ge=-45.0, le=45.0)
+    u_shift_frac: float = Field(default=0.0, ge=0.0, lt=1.0)
+    v_shift_frac: float = Field(default=0.0, ge=0.0, lt=1.0)
+
+
+class AugmentationConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    passes: list[AugPass] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _check_passes(self) -> "AugmentationConfig":
+        if self.enabled and not self.passes:
+            raise ValueError("augmentation.enabled=true requires at least one pass")
+        seen = set()
+        for p in self.passes:
+            key = (p.theta_offset_deg, p.u_shift_frac, p.v_shift_frac)
+            if key in seen:
+                raise ValueError(f"duplicate augmentation pass: {key}")
+            seen.add(key)
+        return self
+
+
 class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -92,6 +124,7 @@ class Config(BaseModel):
     labels: LabelsConfig
     filters: FiltersConfig = Field(default_factory=FiltersConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    augmentation: AugmentationConfig = Field(default_factory=AugmentationConfig)
 
     # Set programmatically after load (not part of the YAML).
     base_dir: Path = Field(default_factory=Path.cwd, exclude=True)

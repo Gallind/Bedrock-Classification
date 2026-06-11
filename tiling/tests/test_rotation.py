@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from affine import Affine
 import geopandas as gpd
-from shapely.geometry import Polygon, box
+from shapely.geometry import Point, Polygon, box
 from rasterio.crs import CRS
 
 from seabed_tiler.rotation import RotatedTileWindow, build_tile_affine, compute_label_footprint, minimum_bounding_rect, build_rotated_windows, extract_rotated_tile
@@ -168,6 +168,134 @@ def test_build_rotated_windows_stores_theta():
     assert len(wins) > 0
     assert all(w.theta == pytest.approx(0.3) for w in wins)
     assert all(isinstance(w, RotatedTileWindow) for w in wins)
+
+
+def test_build_rotated_windows_zero_offset_reproduces_default_grid():
+    """u_offset=v_offset=0 must produce exactly the same windows as no offsets
+    (regression guard for the augmentation origin-shift feature)."""
+    corners = np.array([(0.0, 0.0), (256.0, 0.0), (256.0, 256.0), (0.0, 256.0)])
+    base = build_rotated_windows(corners, theta=0.2, tile_size_m=128.0, stride_m=64.0)
+    shifted = build_rotated_windows(
+        corners, theta=0.2, tile_size_m=128.0, stride_m=64.0,
+        u_offset=0.0, v_offset=0.0,
+    )
+    assert base == shifted
+
+
+def test_build_rotated_windows_offset_shifts_all_origins():
+    """A (u, v) origin offset must shift every window by exactly that amount."""
+    corners = np.array([(0.0, 0.0), (400.0, 0.0), (400.0, 400.0), (0.0, 400.0)])
+    base = build_rotated_windows(corners, theta=0.0, tile_size_m=100.0, stride_m=50.0)
+    shifted = build_rotated_windows(
+        corners, theta=0.0, tile_size_m=100.0, stride_m=50.0,
+        u_offset=25.0, v_offset=-10.0,
+    )
+    assert len(shifted) > 0
+    base_by_rc = {(w.row, w.col): w for w in base}
+    for w in shifted:
+        b = base_by_rc.get((w.row, w.col))
+        if b is None:
+            continue  # shifted grid may drop trailing tiles near the far edge
+        assert w.u_origin - b.u_origin == pytest.approx(25.0)
+        assert w.v_origin - b.v_origin == pytest.approx(-10.0)
+
+
+def test_build_rotated_windows_offset_keeps_full_containment():
+    """Offset windows must still lie fully inside the MBR (no partial tiles)."""
+    corners = np.array([(100.0, 200.0), (500.0, 200.0), (500.0, 600.0), (100.0, 600.0)])
+    tile_size = 100.0
+    wins = build_rotated_windows(
+        corners, theta=0.0, tile_size_m=tile_size, stride_m=50.0,
+        u_offset=30.0, v_offset=-20.0,
+    )
+    assert len(wins) > 0
+    for w in wins:
+        assert w.u_origin >= 100.0 - 1e-6
+        assert w.u_origin + tile_size <= 500.0 + 1e-6
+        assert w.v_origin - tile_size >= 200.0 - 1e-6
+        assert w.v_origin <= 600.0 + 1e-6
+
+
+def _tile_utm_corners(w: RotatedTileWindow, tile_size: float):
+    """UTM coords of a window's 4 corners (u, v rotated frame -> x, y)."""
+    c, s = math.cos(w.theta), math.sin(w.theta)
+    for du in (0.0, tile_size):
+        for dv in (0.0, -tile_size):
+            u, v = w.u_origin + du, w.v_origin + dv
+            yield u * c - v * s, u * s + v * c
+
+
+def test_build_rotated_windows_jittered_theta_stays_inside_mbr():
+    """When the grid angle differs from the MBR's own orientation (augmentation
+    theta jitter), tiles must lie inside the MBR polygon itself -- not inside the
+    larger axis-aligned bounding box of the MBR in the jittered frame. Tiles
+    outside the MBR fall outside the surveyed data and produce dead pixels."""
+    corners = np.array([(0.0, 0.0), (400.0, 0.0), (400.0, 400.0), (0.0, 400.0)])
+    mbr = Polygon(corners).buffer(1e-6)
+    tile_size = 100.0
+    theta = math.radians(8.0)  # MBR is axis-aligned; the grid is jittered by 8 deg
+    wins = build_rotated_windows(corners, theta=theta, tile_size_m=tile_size, stride_m=50.0)
+    assert len(wins) > 0
+    for w in wins:
+        for x, y in _tile_utm_corners(w, tile_size):
+            assert mbr.contains(Point(x, y)), (
+                f"tile r{w.row:03d} c{w.col:03d} corner ({x:.1f}, {y:.1f}) outside MBR"
+            )
+
+
+def test_build_rotated_windows_jittered_theta_with_offset_stays_inside_mbr():
+    """Theta jitter combined with origin shifts (augmentation pass 4 shape) must
+    also keep every tile inside the MBR polygon."""
+    corners = np.array([(0.0, 0.0), (400.0, 0.0), (400.0, 400.0), (0.0, 400.0)])
+    mbr = Polygon(corners).buffer(1e-6)
+    tile_size = 100.0
+    theta = math.radians(-4.0)
+    wins = build_rotated_windows(
+        corners, theta=theta, tile_size_m=tile_size, stride_m=50.0,
+        u_offset=12.5, v_offset=-12.5,
+    )
+    assert len(wins) > 0
+    for w in wins:
+        for x, y in _tile_utm_corners(w, tile_size):
+            assert mbr.contains(Point(x, y)), (
+                f"tile r{w.row:03d} c{w.col:03d} corner ({x:.1f}, {y:.1f}) outside MBR"
+            )
+
+
+def test_build_rotated_windows_narrow_mbr_small_jitter_finds_tiles():
+    """A narrow elongated MBR (polygon5 shape: 872 x 157 m, 128 m tiles) must still
+    yield close to a full row of tiles under a small theta jitter. A corner-anchored
+    grid misses the strip entirely (0 windows) because its quantized row positions
+    fall outside the tilted strip; the anchor phase must be chosen so tiles land
+    inside."""
+    angle = math.radians(-33.0)
+    c, s = math.cos(angle), math.sin(angle)
+    L, W = 872.0, 157.0
+    corners = np.array([
+        (0.0, 0.0),
+        (L * c, L * s),
+        (L * c - W * s, L * s + W * c),
+        (-W * s, W * c),
+    ])
+    mbr = Polygon(corners).buffer(1e-6)
+    tile_size = 128.0
+    for jitter_deg in (1.0, -1.0, 2.0, -2.0):
+        theta = angle + math.radians(jitter_deg)
+        wins = build_rotated_windows(corners, theta=theta, tile_size_m=tile_size, stride_m=64.0)
+        assert len(wins) >= 8, f"jitter {jitter_deg} deg: only {len(wins)} windows"
+        for w in wins:
+            for x, y in _tile_utm_corners(w, tile_size):
+                assert mbr.contains(Point(x, y))
+
+
+def test_build_rotated_windows_aligned_grid_keeps_corner_anchor():
+    """When the grid angle matches the MBR orientation, the anchor must stay at the
+    MBR corner (u_min, v_max) so existing base grids are reproduced exactly."""
+    corners = np.array([(100.0, 200.0), (500.0, 200.0), (500.0, 600.0), (100.0, 600.0)])
+    wins = build_rotated_windows(corners, theta=0.0, tile_size_m=128.0, stride_m=64.0)
+    assert len(wins) > 0
+    assert min(w.u_origin for w in wins) == pytest.approx(100.0)
+    assert max(w.v_origin for w in wins) == pytest.approx(600.0)
 
 
 def test_extract_rotated_tile_theta_zero_equals_direct_slice():
