@@ -30,11 +30,13 @@ class TileRecord:
     augmented: bool          # True iff the tile came from a _rotaug run
     features: np.ndarray     # (B, H, W) float32, raw physical units, cfg.bands order
     label: np.ndarray        # (H, W) uint8 class ids (0=bg, 1=rock, 2=shallow, 3=sand)
+    transform: object = None  # affine.Affine of the tile (rotated for _rot runs)
+    crs: object = None       # rasterio CRS
 
 
 def _read_tile_pair(
     features_path: Path, label_path: Path, bands: list[str]
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, object, object]:
     """Read the requested bands (by GeoTIFF band description) + the label raster."""
     with rasterio.open(features_path) as src:
         descriptions = list(src.descriptions)
@@ -45,9 +47,10 @@ def _read_tile_pair(
             )
         indexes = [descriptions.index(b) + 1 for b in bands]
         features = src.read(indexes).astype(np.float32)
+        transform, crs = src.transform, src.crs
     with rasterio.open(label_path) as src:
         label = src.read(1).astype(np.uint8)
-    return features, label
+    return features, label, transform, crs
 
 
 def load_run_records(
@@ -63,7 +66,7 @@ def load_run_records(
     manifest = pd.read_csv(manifest_path)
     records = []
     for row in manifest.itertuples():
-        features, label = _read_tile_pair(
+        features, label, transform, crs = _read_tile_pair(
             base_dir / row.features_path, base_dir / row.label_path, bands
         )
         records.append(
@@ -73,6 +76,8 @@ def load_run_records(
                 augmented=augmented,
                 features=features,
                 label=label,
+                transform=transform,
+                crs=crs,
             )
         )
     return records
