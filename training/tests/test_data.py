@@ -101,3 +101,28 @@ def test_features_by_polygon_excludes_augmented(synth_dataset):
     grouped = features_by_polygon(splits)
     assert set(grouped) == {"polygon1", "polygon3", "polygon4"}
     assert all(len(arrays) == 1 for arrays in grouped.values())  # base tiles only
+
+
+def test_spatial_blocks_mode_end_to_end(tmp_path):
+    # one polygon, 40 base tiles strung along x at the real 64 m stride
+    tiles, centers = {}, {}
+    for i in range(40):
+        tiles[f"t_{i:03d}"] = make_tile([10.0, 11.0, 12.0], label_value=1)
+        centers[f"t_{i:03d}"] = (600000 + i * 64.0, 3600000.0)
+    make_run_dir(tmp_path, "polygon1", "_rot", tiles, theta_deg=0.0, centers=centers)
+    aug_tiles = {f"a_{i:03d}": make_tile([10.0, 11.0, 12.0], label_value=2) for i in range(0, 40, 2)}
+    aug_centers = {f"a_{i:03d}": (600032 + i * 64.0, 3600000.0) for i in range(0, 40, 2)}
+    make_run_dir(tmp_path, "polygon1", "_rotaug", aug_tiles, theta_deg=0.0, centers=aug_centers)
+
+    cfg = Config(
+        name="t",
+        bands=list(BANDS),
+        split={"mode": "spatial_blocks", "polygons": ["polygon1"],
+               "fractions": (0.7, 0.15, 0.15), "buffer_m": 128.0},
+    )
+    cfg.base_dir = tmp_path
+    splits = load_split_records(cfg)
+    assert splits["train"] and splits["val"] and splits["test"]
+    assert not any(r.augmented for r in splits["val"] + splits["test"])
+    assert any(r.augmented for r in splits["train"])
+    assert all(r.center_x > 0 for v in splits.values() for r in v)

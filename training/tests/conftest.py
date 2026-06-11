@@ -39,15 +39,28 @@ def write_tile_pair(run_dir: Path, tile_id: str, features: np.ndarray, label: np
         dst.write(label.astype("uint8"), 1)
 
 
-def make_run_dir(base_dir: Path, polygon: str, suffix: str, tiles: dict[str, tuple]):
-    """Create outputs/<polygon>/<run_tag><suffix>/ with tiles + manifest.csv."""
+def make_run_dir(
+    base_dir: Path,
+    polygon: str,
+    suffix: str,
+    tiles: dict[str, tuple],
+    theta_deg: float = 0.0,
+    centers: dict[str, tuple] | None = None,
+):
+    """Create outputs/<polygon>/<run_tag><suffix>/ with tiles + manifest.csv.
+
+    Manifest mirrors the real rotated manifests: theta_deg + center_x/center_y
+    columns (defaults: the geometric center of the synthetic tile transform).
+    """
     run_dir = base_dir / "outputs" / polygon / f"t128m_o50pct_r1m{suffix}"
-    rows = ["tile_id,features_path,label_path"]
+    rows = ["tile_id,theta_deg,center_x,center_y,features_path,label_path"]
     for tile_id, (features, label) in tiles.items():
         write_tile_pair(run_dir, tile_id, features, label)
+        cx, cy = (centers or {}).get(tile_id, (600000 + SIZE / 2, 3600000 - SIZE / 2))
         rel = run_dir.relative_to(base_dir)
         rows.append(
-            f"{tile_id},{rel}/tiles/features/{tile_id}.tif,{rel}/tiles/labels/{tile_id}.tif"
+            f"{tile_id},{theta_deg},{cx},{cy},"
+            f"{rel}/tiles/features/{tile_id}.tif,{rel}/tiles/labels/{tile_id}.tif"
         )
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "manifest.csv").write_text("\n".join(rows) + "\n")

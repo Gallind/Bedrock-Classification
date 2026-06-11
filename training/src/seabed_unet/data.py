@@ -32,6 +32,9 @@ class TileRecord:
     label: np.ndarray        # (H, W) uint8 class ids (0=bg, 1=rock, 2=shallow, 3=sand)
     transform: object = None  # affine.Affine of the tile (rotated for _rot runs)
     crs: object = None       # rasterio CRS
+    center_x: float = 0.0    # tile center, UTM (manifest column; spatial splits)
+    center_y: float = 0.0
+    theta_deg: float = 0.0   # grid angle; base tiles carry the polygon's MBR theta
 
 
 def _read_tile_pair(
@@ -78,13 +81,41 @@ def load_run_records(
                 label=label,
                 transform=transform,
                 crs=crs,
+                center_x=float(row.center_x),
+                center_y=float(row.center_y),
+                theta_deg=float(row.theta_deg),
             )
         )
     return records
 
 
 def load_split_records(cfg: Config) -> dict[str, list[TileRecord]]:
-    """Assemble {train, val, test} record lists per the binding contract."""
+    """Assemble {train, val, test} record lists per the binding contract.
+
+    Two modes (cfg.split.mode):
+    - polygon: whole-polygon holdout (train/val/test polygon lists).
+    - spatial_blocks: all cfg.split.polygons contribute; tiles are assigned to
+      contiguous regions along each survey's long axis with a buffer strip
+      dropped at boundaries (see splits.assign_spatial_blocks).
+    """
+    if cfg.split.mode == "spatial_blocks":
+        from .splits import assign_spatial_blocks
+
+        records: list[TileRecord] = []
+        for poly in cfg.split.polygons:
+            records.extend(
+                load_run_records(cfg.rot_dir(poly), poly, cfg.bands, cfg.base_dir, augmented=False)
+            )
+            if cfg.split.use_augmented_for_train:
+                records.extend(
+                    load_run_records(cfg.rotaug_dir(poly), poly, cfg.bands, cfg.base_dir, augmented=True)
+                )
+        splits = assign_spatial_blocks(
+            records, tuple(cfg.split.fractions), cfg.split.buffer_m
+        )
+        _guard_no_augmented_in_eval(splits)
+        return splits
+
     splits: dict[str, list[TileRecord]] = {}
     for split_name, polygons in (
         ("train", cfg.split.train),
@@ -102,11 +133,15 @@ def load_split_records(cfg: Config) -> dict[str, list[TileRecord]]:
                 )
         splits[split_name] = records
 
-    # Hard guard: augmented tiles must be unreachable from val/test.
+    _guard_no_augmented_in_eval(splits)
+    return splits
+
+
+def _guard_no_augmented_in_eval(splits: dict[str, list[TileRecord]]) -> None:
+    """Hard guard: augmented tiles must be unreachable from val/test."""
     for split_name in ("val", "test"):
         if any(r.augmented for r in splits[split_name]):
             raise AssertionError(f"augmented tile leaked into {split_name} split")
-    return splits
 
 
 def encode_target(

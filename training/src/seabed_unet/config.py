@@ -14,24 +14,48 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SplitConfig(BaseModel):
-    """Whole-polygon spatial split (random tile splits are invalid: 50% overlap)."""
+    """Spatial split (random tile splits are invalid: 50% overlap).
+
+    mode=polygon: whole-polygon holdout via train/val/test lists.
+    mode=spatial_blocks: all `polygons` contribute; each is cut into contiguous
+    train/val/test regions along its survey axis (`fractions`), with tiles
+    within `buffer_m` of a boundary dropped so splits share zero pixels.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    train: list[str]
-    val: list[str]
-    test: list[str]
+    mode: str = Field(default="polygon", pattern="^(polygon|spatial_blocks)$")
+    # polygon mode
+    train: list[str] = Field(default_factory=list)
+    val: list[str] = Field(default_factory=list)
+    test: list[str] = Field(default_factory=list)
+    # spatial_blocks mode
+    polygons: list[str] = Field(default_factory=list)
+    fractions: tuple[float, float, float] = (0.7, 0.15, 0.15)
+    buffer_m: float = Field(default=128.0, ge=0.0)
     use_augmented_for_train: bool = True
 
     @model_validator(mode="after")
-    def _check_disjoint(self) -> "SplitConfig":
-        for group_name in ("train", "val", "test"):
-            if not getattr(self, group_name):
-                raise ValueError(f"split.{group_name} must list at least one polygon")
-        all_polys = self.train + self.val + self.test
-        dupes = {p for p in all_polys if all_polys.count(p) > 1}
-        if dupes:
-            raise ValueError(f"polygon(s) in more than one split: {sorted(dupes)}")
+    def _check_mode_fields(self) -> "SplitConfig":
+        if self.mode == "polygon":
+            for group_name in ("train", "val", "test"):
+                if not getattr(self, group_name):
+                    raise ValueError(
+                        f"split.{group_name} must list at least one polygon (mode=polygon)"
+                    )
+            all_polys = self.train + self.val + self.test
+            dupes = {p for p in all_polys if all_polys.count(p) > 1}
+            if dupes:
+                raise ValueError(f"polygon(s) in more than one split: {sorted(dupes)}")
+        else:  # spatial_blocks
+            if not self.polygons:
+                raise ValueError("split.polygons must be non-empty (mode=spatial_blocks)")
+            if len(set(self.polygons)) != len(self.polygons):
+                raise ValueError(f"duplicate polygons in split.polygons: {self.polygons}")
+            if any(f <= 0 for f in self.fractions) or abs(sum(self.fractions) - 1.0) > 1e-6:
+                raise ValueError(
+                    f"split.fractions must be positive and sum to 1, got {self.fractions}"
+                )
         return self
 
 
