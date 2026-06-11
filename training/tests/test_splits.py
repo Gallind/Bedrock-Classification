@@ -85,12 +85,13 @@ def test_augmented_only_in_train_region():
     assert not any(r.augmented for r in splits["val"])
     assert not any(r.augmented for r in splits["test"])
     # aug tiles in val/test regions were dropped, not reassigned to train:
-    # every augmented train tile must sit strictly inside the train region.
-    base_train_u_max = max(u_of(r) for r in splits["train"] if not r.augmented)
-    val_u_min = min(u_of(r) for r in splits["val"])
+    # layout is VAL | TRAIN | TEST, so every augmented train tile must sit
+    # strictly between the val region and the test region.
+    val_u_max = max(u_of(r) for r in splits["val"])
+    test_u_min = min(u_of(r) for r in splits["test"])
     for r in splits["train"]:
         if r.augmented:
-            assert u_of(r) < val_u_min
+            assert val_u_max < u_of(r) < test_u_min
 
 
 def test_multiple_polygons_pool_into_shared_splits():

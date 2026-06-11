@@ -6,10 +6,15 @@ the contract-compliant alternative: each polygon is cut into contiguous
 train/val/test regions along its survey long axis, and every tile whose center
 lies within ``buffer_m`` of a region boundary is dropped entirely.
 
+Region layout along the axis is VAL | TRAIN | TEST: the two small regions sit at
+opposite ends of the strip so each is bounded by a single buffered boundary.
+(A small middle band would need 2*buffer_m of clearance — wider than the band
+itself on these surveys, whose 15% bands span only ~86-125 m.)
+
 Buffer guarantee: a 128 m tile extends at most half its diagonal (~90.5 m) from
 its center in any direction (any rotation, including jittered augmentation
-passes). With buffer_m = 128 dropped on BOTH sides of a boundary, centers of
-kept tiles in different splits are >= 256 m apart along u > 181 m worst case
+passes). With buffer_m >= 96 dropped on BOTH sides of a boundary, centers of
+kept tiles in different splits are >= 192 m apart along u > 181.1 m worst case
 => zero shared pixels across splits, guaranteed geometrically.
 
 Augmented tiles inherit the region of their center and are kept only when that
@@ -40,16 +45,18 @@ def assign_spatial_blocks(
     Per polygon: tile centers are projected onto the survey long axis
     (u = cx*cos(theta) + cy*sin(theta), theta = the polygon's BASE grid angle, so
     jittered augmentation tiles are measured in the same frame as base tiles).
-    Region boundaries are u-quantiles of the BASE tiles at cumulative fractions,
-    so the fractions refer to base-tile counts regardless of augmentation volume.
+    Region boundaries are u-quantiles of the BASE tiles (so fractions refer to
+    base-tile counts regardless of augmentation volume), laid out VAL|TRAIN|TEST:
+    boundary 1 at the val fraction, boundary 2 at val+train.
     """
     splits: dict[str, list[TileRecord]] = {name: [] for name in SPLIT_NAMES}
     by_polygon: dict[str, list[TileRecord]] = {}
     for r in records:
         by_polygon.setdefault(r.polygon, []).append(r)
 
-    q1 = fractions[0]
-    q2 = fractions[0] + fractions[1]
+    # fractions = (train, val, test); axis order is VAL | TRAIN | TEST
+    q1 = fractions[1]
+    q2 = fractions[1] + fractions[0]
 
     for polygon, recs in by_polygon.items():
         base = [r for r in recs if not r.augmented]
@@ -69,7 +76,7 @@ def assign_spatial_blocks(
             u = u_of(r)
             if abs(u - u_b1) < buffer_m or abs(u - u_b2) < buffer_m:
                 continue  # buffer strip: dropped entirely, both sides
-            region = "train" if u < u_b1 else ("val" if u < u_b2 else "test")
+            region = "val" if u < u_b1 else ("train" if u < u_b2 else "test")
             if r.augmented and region != "train":
                 counts[region][1] += 1
                 continue  # augmented tiles never enter val/test

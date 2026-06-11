@@ -32,7 +32,9 @@ class SplitConfig(BaseModel):
     # spatial_blocks mode
     polygons: list[str] = Field(default_factory=list)
     fractions: tuple[float, float, float] = (0.7, 0.15, 0.15)
-    buffer_m: float = Field(default=128.0, ge=0.0)
+    # 96 m > tile half-diagonal (90.5 m) => kept tiles in different splits are
+    # >= 192 m apart, beyond the 181.1 m worst-case overlap distance.
+    buffer_m: float = Field(default=96.0, ge=0.0)
     use_augmented_for_train: bool = True
 
     @model_validator(mode="after")

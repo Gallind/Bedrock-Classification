@@ -9,9 +9,11 @@ feature_nodata: -9999.0
 ignore_label: 0                 # background/unlabeled: never trained, never scored
 
 # Spatial split (binding contract: docs/DATA_AUGMENTATION.md — never random tiles).
-# Default mode: spatial_blocks — every polygon is cut into contiguous train/val/test
-# regions along its survey long axis; tiles within buffer_m of a region boundary are
-# dropped so splits share ZERO pixels (tile half-diagonal ~90.5 m < 128 m buffer).
+# Default mode: spatial_blocks — every polygon is cut into VAL | TRAIN | TEST regions
+# along its survey long axis (small regions at the ends: a middle band would need
+# 2x buffer of clearance, wider than the band itself on these short strips). Tiles
+# within buffer_m of a region boundary are dropped so splits share ZERO pixels
+# (96 m > tile half-diagonal 90.5 m => 192 m separation > 181 m worst case).
 # Augmented (_rotaug) tiles are kept only when their center lies in a train region.
 # polygon mode (whole-polygon holdout via train/val/test lists) remains available and
 # is what seabed_unet.crossval uses for leave-one-polygon-out reporting.
@@ -19,7 +21,7 @@ split:
   mode: spatial_blocks
   polygons: [polygon1, polygon3, polygon4, polygon5]
   fractions: [0.7, 0.15, 0.15]  # train/val/test share of each polygon's base tiles
-  buffer_m: 128                 # dropped strip on EACH side of a region boundary
+  buffer_m: 96                  # dropped strip on EACH side of a region boundary
   use_augmented_for_train: true
 
 normalization:
