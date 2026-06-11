@@ -88,27 +88,16 @@ def evaluate_macro_dice(
     return float(np.nanmean(dice_per_class(cm)))
 
 
-def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(description="Train the seabed U-Net.")
-    parser.add_argument("--config", required=True, help="Experiment config YAML.")
-    parser.add_argument("--base-dir", default=None, help="Repo root (default: cwd).")
-    parser.add_argument("--epochs", type=int, default=None, help="Override train.epochs.")
-    parser.add_argument(
-        "--limit", type=int, default=None,
-        help="Cap tiles per split (smoke runs only — not a valid experiment).",
-    )
-    args = parser.parse_args(argv)
+def run_training(cfg: Config, limit: int | None = None) -> dict:
+    """Train one model from a fully-resolved config; return a summary dict.
 
-    base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
-    cfg = load_config(args.config, base_dir=base)
-    if args.epochs is not None:
-        cfg.train.epochs = args.epochs
-
+    Reused by the CLI below and by seabed_unet.crossval (per-fold configs).
+    """
     seed_everything(cfg.train.seed)
     device = resolve_device(cfg.train.device)
     print(f"[+] {cfg.name}: bands={cfg.bands} device={device.type}")
 
-    train_ds, val_ds, stats, _ = build_datasets(cfg, limit=args.limit)
+    train_ds, val_ds, stats, _ = build_datasets(cfg, limit=limit)
     band_modes = cfg.normalization.modes_for(cfg.bands)
     print(f"    train={len(train_ds)} tiles (D4={'on' if cfg.train.d4_augment else 'off'}) "
           f"val={len(val_ds)} tiles  split={cfg.split.mode}  norm={band_modes}")
@@ -202,6 +191,31 @@ def main(argv=None) -> None:
         writer.writerows(history)
 
     print(f"[+] best val macro-Dice {best_dice:.4f} (epoch {best_epoch}) -> {run_dir}")
+    return {
+        "name": cfg.name,
+        "best_val_macro_dice": best_dice,
+        "best_epoch": best_epoch,
+        "epochs_run": len(history),
+        "run_dir": str(run_dir),
+    }
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Train the seabed U-Net.")
+    parser.add_argument("--config", required=True, help="Experiment config YAML.")
+    parser.add_argument("--base-dir", default=None, help="Repo root (default: cwd).")
+    parser.add_argument("--epochs", type=int, default=None, help="Override train.epochs.")
+    parser.add_argument(
+        "--limit", type=int, default=None,
+        help="Cap tiles per split (smoke runs only — not a valid experiment).",
+    )
+    args = parser.parse_args(argv)
+
+    base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
+    cfg = load_config(args.config, base_dir=base)
+    if args.epochs is not None:
+        cfg.train.epochs = args.epochs
+    run_training(cfg, limit=args.limit)
 
 
 if __name__ == "__main__":

@@ -47,19 +47,16 @@ def save_confusion_png(cm: np.ndarray, class_names: list[str], path: Path) -> No
     plt.close(fig)
 
 
-def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(description="Evaluate a trained seabed U-Net.")
-    parser.add_argument("--config", required=True, help="Experiment config YAML.")
-    parser.add_argument("--base-dir", default=None, help="Repo root (default: cwd).")
-    parser.add_argument("--checkpoint", default=None, help="Default: <run_dir>/best.pt")
-    parser.add_argument("--split", default="test", choices=["val", "test"])
-    args = parser.parse_args(argv)
+def evaluate_checkpoint(
+    cfg, split: str = "test", checkpoint: str | Path | None = None
+) -> dict:
+    """Score a checkpoint on a split's base tiles; write artifacts; return the report.
 
-    base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
-    cfg = load_config(args.config, base_dir=base)
+    Reused by the CLI below and by seabed_unet.crossval (per-fold configs).
+    """
     device = resolve_device(cfg.train.device)
 
-    ckpt_path = Path(args.checkpoint) if args.checkpoint else cfg.run_dir / "best.pt"
+    ckpt_path = Path(checkpoint) if checkpoint else cfg.run_dir / "best.pt"
     model, ckpt = load_checkpoint(ckpt_path, device)
     if ckpt["config"]["bands"] != cfg.bands:
         raise SystemExit(
@@ -67,10 +64,10 @@ def main(argv=None) -> None:
             f"config asks for {cfg.bands}"
         )
     print(f"[+] {cfg.name}: checkpoint epoch {ckpt['epoch']} "
-          f"(val macro-Dice {ckpt['val_macro_dice']:.4f}) on split '{args.split}'")
+          f"(val macro-Dice {ckpt['val_macro_dice']:.4f}) on split '{split}'")
 
     stats = load_stats(cfg.run_dir / "normalization_stats.json")
-    records = load_split_records(cfg)[args.split]
+    records = load_split_records(cfg)[split]
     ds = TileDataset(
         records, cfg.bands, cfg.class_ids, stats, cfg.feature_nodata,
         cfg.ignore_label, cfg.normalization.modes_for(cfg.bands), augment=False,
@@ -84,7 +81,7 @@ def main(argv=None) -> None:
 
     class_names = [cfg.id_to_name[cid] for cid in cfg.class_ids]
     report = metrics_report(cm, class_names)
-    report["split"] = args.split
+    report["split"] = split
     report["split_mode"] = cfg.split.mode
     report["polygons"] = sorted({r.polygon for r in records})
     report["n_tiles"] = len(ds)
@@ -98,13 +95,27 @@ def main(argv=None) -> None:
         print(f"      {name:<13} dice {c['dice']:.4f}  PAcc {c['producers_accuracy']:.4f}  "
               f"UAcc {c['users_accuracy']:.4f}  ({c['support_px']:,} px)")
 
-    out_dir = cfg.run_dir / f"eval_{args.split}"
+    out_dir = cfg.run_dir / f"eval_{split}"
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "metrics.json").write_text(json.dumps(report, indent=2))
     np.savetxt(out_dir / "confusion_matrix.csv", cm, fmt="%d", delimiter=",",
                header=",".join(class_names), comments="")
     save_confusion_png(cm, class_names, out_dir / "confusion_matrix.png")
     print(f"[+] report -> {out_dir}")
+    return report
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Evaluate a trained seabed U-Net.")
+    parser.add_argument("--config", required=True, help="Experiment config YAML.")
+    parser.add_argument("--base-dir", default=None, help="Repo root (default: cwd).")
+    parser.add_argument("--checkpoint", default=None, help="Default: <run_dir>/best.pt")
+    parser.add_argument("--split", default="test", choices=["val", "test"])
+    args = parser.parse_args(argv)
+
+    base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
+    cfg = load_config(args.config, base_dir=base)
+    evaluate_checkpoint(cfg, split=args.split, checkpoint=args.checkpoint)
 
 
 if __name__ == "__main__":
