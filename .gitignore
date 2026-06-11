@@ -2,7 +2,9 @@
 # HEAVY / NON-RELATED
 #####################
 .venv
+.venv-train
 venv
+training/runs/
 dev/
 pyvenv.cfg
 .DS_Store

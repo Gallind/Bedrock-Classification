@@ -1,0 +1,45 @@
+# Shared training defaults. An experiment config (e.g. experiment_3band.yaml) is
+# deep-merged on top, mirroring tiling/config/default.yaml semantics.
+# `name` and `bands` are experiment-level and intentionally absent here.
+
+outputs_dir: outputs            # where the tiler wrote its runs (repo-relative)
+run_tag: t128m_o50pct_r1m       # base run tag; _rot / _rotaug dirs are derived from it
+classes: {rock: 1, shallow_rock: 2, sand: 3}
+feature_nodata: -9999.0
+ignore_label: 0                 # background/unlabeled: never trained, never scored
+
+# Spatial split by whole polygon (binding contract: docs/DATA_AUGMENTATION.md).
+# Augmented (_rotaug) tiles are only ever drawn from `train` polygons.
+split:
+  train: [polygon1, polygon5]
+  val: [polygon3]
+  test: [polygon4]
+  use_augmented_for_train: true
+
+normalization:
+  mode: per_polygon             # per_polygon = each survey self-normalized (bridges the
+                                # dB-vs-grayscale backscatter shift); global = train-stats only
+  clip_percentiles: [2.0, 98.0] # robust min/max against outliers before scaling to [0,1]
+
+model:
+  base_filters: 16              # lightweight U-Net; ~0.5M params at depth 4
+  depth: 4                      # 128 px / 2^4 = 8 px bottleneck
+
+loss:
+  ce_weight: 0.5                # combined loss = ce_weight*weightedCE + dice_weight*softDice
+  dice_weight: 0.5
+  class_weights: auto           # auto = inverse pixel frequency from TRAIN pixels only
+
+train:
+  seed: 42
+  batch_size: 16
+  epochs: 200
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  scheduler_patience: 10        # ReduceLROnPlateau on val macro-Dice
+  scheduler_factor: 0.5
+  early_stop_patience: 25       # epochs without val macro-Dice improvement
+  d4_augment: true              # training-time D4 ops via seabed_tiler.augment
+  device: auto                  # auto -> cuda > mps > cpu
+
+runs_dir: training/runs         # checkpoints/metrics/maps land in <runs_dir>/<name>/

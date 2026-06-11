@@ -1,0 +1,14 @@
+# Training env (.venv-train). This machine is an Intel Mac: PyTorch dropped
+# macOS x86_64 wheels after 2.2.x, and those only exist up to Python 3.12 —
+# hence the dedicated Python 3.12 venv (the tiler's .venv is Python 3.14).
+#   python3.12 -m venv .venv-train
+#   .venv-train/bin/python -m pip install -r training/requirements.txt
+torch==2.2.2
+numpy<2          # torch 2.2.x is built against numpy 1.x
+rasterio
+pandas
+pyyaml
+pydantic>=2
+matplotlib
+Pillow
+pytest
