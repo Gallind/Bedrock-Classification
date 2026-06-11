@@ -54,21 +54,23 @@ def build_datasets(
     splits = load_split_records(cfg)
     if limit is not None:
         splits = {k: v[:limit] for k, v in splits.items()}
+    band_modes = cfg.normalization.modes_for(cfg.bands)
+    train_features = [r.features for r in splits["train"] if not r.augmented]
     stats = compute_stats(
         features_by_polygon(splits),
+        train_features,
         cfg.bands,
-        cfg.normalization.mode,
+        band_modes,
         cfg.feature_nodata,
         tuple(cfg.normalization.clip_percentiles),
-        train_polygons=cfg.split.train,
     )
     train_ds = TileDataset(
         splits["train"], cfg.bands, cfg.class_ids, stats, cfg.feature_nodata,
-        cfg.ignore_label, augment=cfg.train.d4_augment, seed=cfg.train.seed,
+        cfg.ignore_label, band_modes, augment=cfg.train.d4_augment, seed=cfg.train.seed,
     )
     val_ds = TileDataset(
         splits["val"], cfg.bands, cfg.class_ids, stats, cfg.feature_nodata,
-        cfg.ignore_label, augment=False,
+        cfg.ignore_label, band_modes, augment=False,
     )
     return train_ds, val_ds, stats, splits
 
@@ -107,8 +109,9 @@ def main(argv=None) -> None:
     print(f"[+] {cfg.name}: bands={cfg.bands} device={device.type}")
 
     train_ds, val_ds, stats, _ = build_datasets(cfg, limit=args.limit)
+    band_modes = cfg.normalization.modes_for(cfg.bands)
     print(f"    train={len(train_ds)} tiles (D4={'on' if cfg.train.d4_augment else 'off'}) "
-          f"val={len(val_ds)} tiles  norm={cfg.normalization.mode}")
+          f"val={len(val_ds)} tiles  split={cfg.split.mode}  norm={band_modes}")
 
     run_dir = cfg.run_dir
     if run_dir.exists():

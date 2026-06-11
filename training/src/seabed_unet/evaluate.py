@@ -73,7 +73,7 @@ def main(argv=None) -> None:
     records = load_split_records(cfg)[args.split]
     ds = TileDataset(
         records, cfg.bands, cfg.class_ids, stats, cfg.feature_nodata,
-        cfg.ignore_label, augment=False,
+        cfg.ignore_label, cfg.normalization.modes_for(cfg.bands), augment=False,
     )
 
     cm = np.zeros((cfg.num_classes, cfg.num_classes), dtype=np.int64)
@@ -85,7 +85,8 @@ def main(argv=None) -> None:
     class_names = [cfg.id_to_name[cid] for cid in cfg.class_ids]
     report = metrics_report(cm, class_names)
     report["split"] = args.split
-    report["polygons"] = getattr(cfg.split, args.split)
+    report["split_mode"] = cfg.split.mode
+    report["polygons"] = sorted({r.polygon for r in records})
     report["n_tiles"] = len(ds)
 
     print(f"    tiles {len(ds)}  scored px {cm.sum():,}")

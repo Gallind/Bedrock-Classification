@@ -26,7 +26,7 @@ from seabed_tiler.viz import label_to_rgb, write_prj, write_worldfile
 from .config import load_config
 from .data import load_run_records
 from .inference import load_checkpoint, predict_probs
-from .normalize import compute_stats, apply_stats, load_stats
+from .normalize import apply_stats, compute_band_stats, load_stats
 from .train import resolve_device
 
 
@@ -47,7 +47,7 @@ def _records_extent(records) -> tuple[float, float, float, float, float]:
 
 
 def build_class_map(
-    records, model, stats, bands, class_ids, nodata, device
+    records, model, stats, bands, class_ids, nodata, band_modes, device
 ) -> tuple[np.ndarray, object, object]:
     """(uint8 class-id map, North-up transform, crs) from mask-weighted blended probs."""
     xmin, ymin, xmax, ymax, res = _records_extent(records)
@@ -61,7 +61,7 @@ def build_class_map(
     weight = np.zeros((n_rows, n_cols), dtype=np.float64)
 
     for r in records:
-        inputs = apply_stats(r.features, r.polygon, bands, stats, nodata)
+        inputs = apply_stats(r.features, r.polygon, bands, stats, nodata, band_modes)
         probs = predict_probs(model, inputs, device)
         # Mask-weighted contribution: pixels with invalid features carry no vote,
         # and the mask also kills reproject edge fill (outside-tile -> 0 weight).
@@ -106,7 +106,10 @@ def main(argv=None) -> None:
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg = load_config(args.config, base_dir=base)
     device = resolve_device(cfg.train.device)
-    polygon = args.polygon or cfg.split.test[0]
+    # Default target: first test polygon (polygon mode) or first split polygon
+    # (spatial_blocks mode, where every polygon has a test region).
+    fallback = cfg.split.test[0] if cfg.split.test else cfg.split.polygons[0]
+    polygon = args.polygon or fallback
 
     ckpt_path = Path(args.checkpoint) if args.checkpoint else cfg.run_dir / "best.pt"
     model, ckpt = load_checkpoint(ckpt_path, device)
@@ -122,20 +125,26 @@ def main(argv=None) -> None:
     print(f"[+] {cfg.name}: mapping {polygon} from {len(records)} base tiles")
 
     stats = load_stats(cfg.run_dir / "normalization_stats.json")
-    if polygon not in stats and cfg.normalization.mode == "per_polygon":
-        # Unseen survey: self-normalize from its own features (no labels involved).
-        stats = {
-            **stats,
-            **compute_stats(
-                {polygon: [r.features for r in records]},
-                cfg.bands, "per_polygon", cfg.feature_nodata,
-                tuple(cfg.normalization.clip_percentiles),
-            ),
+    band_modes = cfg.normalization.modes_for(cfg.bands)
+    per_poly_bands = [(i, b) for i, b in enumerate(cfg.bands) if band_modes[b] == "per_polygon"]
+    if per_poly_bands and polygon not in stats:
+        # Unseen survey: self-normalize its per-polygon bands from its own
+        # features (no labels involved). Global bands keep the saved
+        # train-fitted range — out-of-range values clip.
+        arrays = [r.features for r in records]
+        stats = dict(stats)
+        stats[polygon] = {
+            band: compute_band_stats(
+                arrays, i, cfg.feature_nodata, tuple(cfg.normalization.clip_percentiles)
+            )
+            for i, band in per_poly_bands
         }
-        print(f"    {polygon} not in training stats — self-normalized")
+        print(f"    {polygon} not in training stats — self-normalized "
+              f"{[b for _, b in per_poly_bands]}")
 
     class_map, transform, crs = build_class_map(
-        records, model, stats, cfg.bands, cfg.class_ids, cfg.feature_nodata, device
+        records, model, stats, cfg.bands, cfg.class_ids, cfg.feature_nodata,
+        band_modes, device,
     )
 
     out_dir = cfg.run_dir / "maps"

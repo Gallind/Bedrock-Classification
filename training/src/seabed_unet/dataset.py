@@ -28,13 +28,16 @@ class TileDataset(Dataset):
         stats: dict,
         nodata: float,
         ignore_label: int,
+        band_modes: dict[str, str],
         augment: bool = False,
         seed: int = 0,
     ):
         self.inputs: list[np.ndarray] = []
         self.targets: list[np.ndarray] = []
         for r in records:
-            self.inputs.append(apply_stats(r.features, r.polygon, bands, stats, nodata))
+            self.inputs.append(
+                apply_stats(r.features, r.polygon, bands, stats, nodata, band_modes)
+            )
             self.targets.append(
                 encode_target(r.label, r.features, class_ids, nodata, ignore_label)
             )

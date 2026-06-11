@@ -9,6 +9,7 @@ from seabed_unet.data import IGNORE_INDEX, TileRecord
 from seabed_unet.dataset import TileDataset
 
 CLASS_IDS = [1, 2, 3]
+BAND_MODES = {b: "per_polygon" for b in BANDS}
 
 
 def make_record(size=8) -> TileRecord:
@@ -23,7 +24,7 @@ def make_stats():
 
 
 def test_tensor_shapes_and_dtypes():
-    ds = TileDataset([make_record()], BANDS, CLASS_IDS, make_stats(), NODATA, 0)
+    ds = TileDataset([make_record()], BANDS, CLASS_IDS, make_stats(), NODATA, 0, BAND_MODES)
     x, y = ds[0]
     assert x.shape == (3, 8, 8) and x.dtype == torch.float32
     assert y.shape == (8, 8) and y.dtype == torch.int64
@@ -32,7 +33,7 @@ def test_tensor_shapes_and_dtypes():
 
 
 def test_no_augment_is_deterministic_identity():
-    ds = TileDataset([make_record()], BANDS, CLASS_IDS, make_stats(), NODATA, 0, augment=False)
+    ds = TileDataset([make_record()], BANDS, CLASS_IDS, make_stats(), NODATA, 0, BAND_MODES, augment=False)
     x1, y1 = ds[0]
     x2, y2 = ds[0]
     assert torch.equal(x1, x2) and torch.equal(y1, y2)
@@ -40,8 +41,8 @@ def test_no_augment_is_deterministic_identity():
 
 def test_d4_augment_moves_features_and_target_together():
     record = make_record()
-    ds = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, augment=True, seed=1)
-    base = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, augment=False)
+    ds = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, BAND_MODES, augment=True, seed=1)
+    base = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, BAND_MODES, augment=False)
     x0, y0 = base[0]
     # Across several draws, augmented pairs must stay co-registered: the same
     # D4 op maps base (x, y) onto the augmented (x, y).
@@ -60,8 +61,8 @@ def test_d4_augment_moves_features_and_target_together():
 
 def test_augment_seed_reproducible():
     record = make_record()
-    a = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, augment=True, seed=7)
-    b = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, augment=True, seed=7)
+    a = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, BAND_MODES, augment=True, seed=7)
+    b = TileDataset([record], BANDS, CLASS_IDS, make_stats(), NODATA, 0, BAND_MODES, augment=True, seed=7)
     for _ in range(4):
         xa, ya = a[0]
         xb, yb = b[0]

@@ -8,17 +8,30 @@ classes: {rock: 1, shallow_rock: 2, sand: 3}
 feature_nodata: -9999.0
 ignore_label: 0                 # background/unlabeled: never trained, never scored
 
-# Spatial split by whole polygon (binding contract: docs/DATA_AUGMENTATION.md).
-# Augmented (_rotaug) tiles are only ever drawn from `train` polygons.
+# Spatial split (binding contract: docs/DATA_AUGMENTATION.md — never random tiles).
+# Default mode: spatial_blocks — every polygon is cut into contiguous train/val/test
+# regions along its survey long axis; tiles within buffer_m of a region boundary are
+# dropped so splits share ZERO pixels (tile half-diagonal ~90.5 m < 128 m buffer).
+# Augmented (_rotaug) tiles are kept only when their center lies in a train region.
+# polygon mode (whole-polygon holdout via train/val/test lists) remains available and
+# is what seabed_unet.crossval uses for leave-one-polygon-out reporting.
 split:
-  train: [polygon1, polygon5]
-  val: [polygon3]
-  test: [polygon4]
+  mode: spatial_blocks
+  polygons: [polygon1, polygon3, polygon4, polygon5]
+  fractions: [0.7, 0.15, 0.15]  # train/val/test share of each polygon's base tiles
+  buffer_m: 128                 # dropped strip on EACH side of a region boundary
   use_augmented_for_train: true
 
 normalization:
-  mode: per_polygon             # per_polygon = each survey self-normalized (bridges the
-                                # dB-vs-grayscale backscatter shift); global = train-stats only
+  # per_polygon = survey self-normalizes (required for backscatter: poly1 is JPEG
+  # grayscale 0-255 vs real dB on poly3/4/5). global = one train-only range applied
+  # everywhere — preserves absolute depth/slope, which per-polygon scaling erases
+  # (shallow_rock is literally defined by depth).
+  default_mode: per_polygon
+  band_modes:
+    bathymetry: global
+    slope: global
+    backscatter: per_polygon
   clip_percentiles: [2.0, 98.0] # robust min/max against outliers before scaling to [0,1]
 
 model:

@@ -22,9 +22,13 @@ def test_real_experiment_configs_load():
     for exp, n_bands in [("experiment_3band.yaml", 3), ("experiment_2band.yaml", 2)]:
         cfg = load_config(CONFIG_DIR / exp, base_dir="/repo")
         assert len(cfg.bands) == n_bands
-        assert cfg.split.train == ["polygon1", "polygon5"]
-        assert cfg.split.val == ["polygon3"]
-        assert cfg.split.test == ["polygon4"]
+        assert cfg.split.mode == "spatial_blocks"
+        assert cfg.split.polygons == ["polygon1", "polygon3", "polygon4", "polygon5"]
+        assert cfg.split.fractions == (0.7, 0.15, 0.15)
+        modes = cfg.normalization.modes_for(cfg.bands)
+        assert modes["bathymetry"] == "global" and modes["slope"] == "global"
+        if "backscatter" in cfg.bands:
+            assert modes["backscatter"] == "per_polygon"
         assert cfg.num_classes == 3
         assert cfg.class_ids == [1, 2, 3]
 

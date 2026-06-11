@@ -60,17 +60,33 @@ class SplitConfig(BaseModel):
 
 
 class NormalizationConfig(BaseModel):
+    """Per-band normalization modes.
+
+    per_polygon = survey self-normalizes (required for backscatter: units differ
+    per survey); global = one train-only range applied everywhere (preserves
+    absolute depth/slope across surveys). Bands absent from band_modes fall back
+    to default_mode.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
-    mode: str = Field(default="per_polygon", pattern="^(per_polygon|global)$")
+    default_mode: str = Field(default="per_polygon", pattern="^(per_polygon|global)$")
+    band_modes: dict[str, str] = Field(default_factory=dict)
     clip_percentiles: tuple[float, float] = (2.0, 98.0)
 
     @model_validator(mode="after")
-    def _check_percentiles(self) -> "NormalizationConfig":
+    def _check_fields(self) -> "NormalizationConfig":
         lo, hi = self.clip_percentiles
         if not (0.0 <= lo < hi <= 100.0):
             raise ValueError(f"clip_percentiles must satisfy 0 <= lo < hi <= 100, got {self.clip_percentiles}")
+        bad = {b: m for b, m in self.band_modes.items() if m not in ("per_polygon", "global")}
+        if bad:
+            raise ValueError(f"invalid band_modes (use per_polygon|global): {bad}")
         return self
+
+    def modes_for(self, bands: list[str]) -> dict[str, str]:
+        """Fully-resolved {band: mode} for the experiment's band list."""
+        return {b: self.band_modes.get(b, self.default_mode) for b in bands}
 
 
 class ModelConfig(BaseModel):
