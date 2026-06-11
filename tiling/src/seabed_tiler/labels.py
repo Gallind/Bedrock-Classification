@@ -14,6 +14,7 @@ Two label encodings are supported (see ``LabelsConfig.kind``):
 
 from __future__ import annotations
 
+import logging
 import re
 
 import geopandas as gpd
@@ -24,6 +25,8 @@ from shapely.geometry import Polygon
 from shapely.ops import polygonize as shp_polygonize
 
 from .config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_name(name) -> str:
@@ -98,9 +101,9 @@ def build_label_per_class(cfg: Config, transform, crs, shape) -> np.ndarray:
                 else:
                     dropped += 1
                     gtype = "empty" if geom is None or geom.is_empty else geom.geom_type
-                    print(f"    [drop] {class_name}: {fname}[{idx}] ({gtype}) not a closed area")
+                    logger.info(f"    [drop] {class_name}: {fname}[{idx}] ({gtype}) not a closed area")
         if dropped:
-            print(f"    {class_name}: kept {kept}, dropped {dropped} feature(s)")
+            logger.info(f"    {class_name}: kept {kept}, dropped {dropped} feature(s)")
 
     if not shapes:
         return np.full(shape, nodata, dtype=np.uint8)

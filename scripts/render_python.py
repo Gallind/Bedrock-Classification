@@ -3,11 +3,14 @@ Render .xyz seabed survey files (X, Y, Z) to georeferenced images using
 numpy + matplotlib.  Works for any regular-grid XYZ dataset in this project.
 """
 
+import logging
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+
+logger = logging.getLogger("render_python")
 
 DB = "DataBase"
 DATASETS = [
@@ -29,9 +32,9 @@ DATASETS = [
 
 
 def xyz_to_image(xyz_path, output_path, title, cmap, label, pixel_size=0.5):
-    print(f"\n[+] Reading {os.path.basename(xyz_path)} …")
+    logger.info(f"\n[+] Reading {os.path.basename(xyz_path)} …")
     df = pd.read_csv(xyz_path, header=None, names=["x", "y", "z"], dtype=np.float64)
-    print(f"    {len(df):,} points  |  Z range: {df.z.min():.3f} → {df.z.max():.3f}")
+    logger.info(f"    {len(df):,} points  |  Z range: {df.z.min():.3f} → {df.z.max():.3f}")
 
     # Snap coordinates to a uniform grid origin
     x_min = df.x.min()
@@ -42,7 +45,7 @@ def xyz_to_image(xyz_path, output_path, title, cmap, label, pixel_size=0.5):
 
     n_rows = rows.max() + 1
     n_cols = cols.max() + 1
-    print(f"    Grid: {n_rows} rows × {n_cols} cols")
+    logger.info(f"    Grid: {n_rows} rows × {n_cols} cols")
 
     Z = np.full((n_rows, n_cols), np.nan, dtype=np.float32)
     Z[rows, cols] = df.z.values
@@ -77,10 +80,11 @@ def xyz_to_image(xyz_path, output_path, title, cmap, label, pixel_size=0.5):
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"    Saved → {output_path}")
+    logger.info(f"    Saved → {output_path}")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(name)s: %(message)s")
     for ds in DATASETS:
         xyz_to_image(
             ds["xyz"],
@@ -89,4 +93,4 @@ if __name__ == "__main__":
             ds["cmap"],
             ds["label"],
         )
-    print("\nDone.")
+    logger.info("\nDone.")

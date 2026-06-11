@@ -26,7 +26,7 @@ from .metrics import confusion_matrix, metrics_report
 from .normalize import load_stats
 from .train import resolve_device
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 
 def save_confusion_png(cm: np.ndarray, class_names: list[str], path: Path) -> None:

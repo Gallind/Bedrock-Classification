@@ -32,7 +32,7 @@ from .metrics import confusion_matrix, dice_per_class
 from .normalize import compute_stats, save_stats
 from .unet import UNet
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 
 def resolve_device(requested: str) -> torch.device:

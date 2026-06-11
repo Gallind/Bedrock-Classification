@@ -27,7 +27,7 @@ from .evaluate import evaluate_checkpoint
 from .logging_utils import add_file_handler, setup_logging
 from .train import run_training
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 FOLD_ORDER = ["polygon1", "polygon3", "polygon4", "polygon5"]
 

@@ -31,7 +31,7 @@ from .logging_utils import add_file_handler, setup_logging
 from .normalize import apply_stats, compute_band_stats, load_stats
 from .train import resolve_device
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 
 def _records_extent(records) -> tuple[float, float, float, float, float]:

@@ -3,8 +3,11 @@ Render .xyz seabed survey files to publication-quality images using PyGMT.
 PyGMT is the official Python wrapper for Generic Mapping Tools (GMT 6).
 """
 
+import logging
 import os
 import pygmt
+
+logger = logging.getLogger("render_gmt")
 
 DB = "DataBase"
 DATASETS = [
@@ -36,20 +39,20 @@ def get_region(xyz_path):
 
 
 def xyz_to_image(xyz_path, output_path, title, cmap, label, reverse_cmap, spacing=0.5):
-    print(f"\n[+] Processing {os.path.basename(xyz_path)} …")
+    logger.info(f"\n[+] Processing {os.path.basename(xyz_path)} …")
 
     # --- 1. Discover extent ------------------------------------------------
     region = pygmt.info(data=xyz_path, spacing=spacing)
-    print(f"    Region: {region}")
+    logger.info(f"    Region: {region}")
 
     # --- 2. Load data into a pandas DataFrame (PyGMT accepts it directly) --
     import pandas as pd, numpy as np
-    print("    Reading points …")
+    logger.info("    Reading points …")
     df = pd.read_csv(xyz_path, header=None, names=["x", "y", "z"], dtype=np.float64)
-    print(f"    {len(df):,} points  |  Z range: {df.z.min():.3f} → {df.z.max():.3f}")
+    logger.info(f"    {len(df):,} points  |  Z range: {df.z.min():.3f} → {df.z.max():.3f}")
 
     # --- 3. Build a regular grid with xyz2grd ------------------------------
-    print("    Gridding …")
+    logger.info("    Gridding …")
     grid = pygmt.xyz2grd(
         data=df,
         region=region,
@@ -96,13 +99,14 @@ def xyz_to_image(xyz_path, output_path, title, cmap, label, reverse_cmap, spacin
         no_clip=True,
     )
 
-    print(f"    Saving → {output_path}")
+    logger.info(f"    Saving → {output_path}")
     fig.savefig(output_path, dpi=150, anti_alias=True)
     os.remove(cpt_file)
-    print(f"    Saved  → {output_path}")
+    logger.info(f"    Saved  → {output_path}")
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(name)s: %(message)s")
     for ds in DATASETS:
         xyz_to_image(
             ds["xyz"],
@@ -112,4 +116,4 @@ if __name__ == "__main__":
             ds["label"],
             ds["reverse_cmap"],
         )
-    print("\nDone.")
+    logger.info("\nDone.")

@@ -10,6 +10,7 @@ Run:
 
 from __future__ import annotations
 
+import logging
 import argparse
 import math
 from pathlib import Path
@@ -18,7 +19,10 @@ import numpy as np
 import rasterio
 from PIL import Image
 
+from .logging_utils import add_file_handler, setup_logging
 from .viz import colorize, label_to_rgb, normalize_band, resolve_styles, write_prj, write_worldfile
+
+logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 
 def _save_jpg(array, path: Path, quality: int = 92) -> None:
@@ -53,7 +57,7 @@ def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfil
     if limit:
         paths = paths[:limit]
     if not paths:
-        print("  no feature tiles found")
+        logger.info("  no feature tiles found")
         return
 
     with rasterio.open(paths[0]) as ds:
@@ -63,11 +67,11 @@ def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfil
         dx = math.hypot(ds.transform.a, ds.transform.d)
 
     ranges = _band_ranges(paths, n_bands, nodata)
-    print(f"  feature bands {band_names}")
-    print(f"  intensity ranges {[tuple(round(v, 2) for v in r) for r in ranges]}")
+    logger.info(f"  feature bands {band_names}")
+    logger.info(f"  intensity ranges {[tuple(round(v, 2) for v in r) for r in ranges]}")
     for bn in band_names:
         style = styles.get(bn)
-        print(f"    {bn:<12} -> {'cmap=' + style['cmap'] + (' +hillshade' if style.get('hillshade') else '') if style else 'grayscale'}")
+        logger.info(f"    {bn:<12} -> {'cmap=' + style['cmap'] + (' +hillshade' if style.get('hillshade') else '') if style else 'grayscale'}")
         (out_dir / "features" / bn).mkdir(parents=True, exist_ok=True)
 
     for p in paths:
@@ -90,7 +94,7 @@ def convert_features(tiles_dir: Path, out_dir: Path, limit: int | None, worldfil
             if worldfile:
                 write_worldfile(jp, transform)
                 write_prj(jp, crs)
-    print(f"  wrote {len(paths)} tiles x {n_bands} bands -> {out_dir / 'features'}")
+    logger.info(f"  wrote {len(paths)} tiles x {n_bands} bands -> {out_dir / 'features'}")
 
 
 def convert_labels(tiles_dir: Path, out_dir: Path, limit: int | None, worldfile: bool):
@@ -98,7 +102,7 @@ def convert_labels(tiles_dir: Path, out_dir: Path, limit: int | None, worldfile:
     if limit:
         paths = paths[:limit]
     if not paths:
-        print("  no label tiles found")
+        logger.info("  no label tiles found")
         return
 
     (out_dir / "labels").mkdir(parents=True, exist_ok=True)
@@ -112,7 +116,7 @@ def convert_labels(tiles_dir: Path, out_dir: Path, limit: int | None, worldfile:
         if worldfile:
             write_worldfile(jp, transform)
             write_prj(jp, crs)
-    print(f"  wrote {len(paths)} label tiles -> {out_dir / 'labels'}")
+    logger.info(f"  wrote {len(paths)} label tiles -> {out_dir / 'labels'}")
 
 
 def main(argv=None) -> None:
@@ -137,15 +141,17 @@ def main(argv=None) -> None:
         from .config import load_config
         tiles_dir = load_config(args.config).out_dir
     out_dir = Path(args.out) if args.out else tiles_dir / "jpg"
+    setup_logging()
+    add_file_handler(tiles_dir / "to_jpg.log")
     worldfile = not args.no_worldfile
     styles = {} if args.gray else resolve_styles(args.config)
 
-    print(f"[+] tiles -> jpg  ({args.what})  from {tiles_dir}")
+    logger.info(f"[+] tiles -> jpg  ({args.what})  from {tiles_dir}")
     if args.what in ("features", "both"):
         convert_features(tiles_dir, out_dir, args.limit, worldfile, styles)
     if args.what in ("labels", "both"):
         convert_labels(tiles_dir, out_dir, args.limit, worldfile)
-    print(f"[+] done -> {out_dir}")
+    logger.info(f"[+] done -> {out_dir}")
 
 
 if __name__ == "__main__":
