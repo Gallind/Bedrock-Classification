@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -20,9 +21,12 @@ from .config import load_config
 from .data import load_split_records
 from .dataset import TileDataset
 from .inference import load_checkpoint, predict_probs
+from .logging_utils import add_file_handler, remove_handler, setup_logging
 from .metrics import confusion_matrix, metrics_report
 from .normalize import load_stats
 from .train import resolve_device
+
+logger = logging.getLogger(__name__)
 
 
 def save_confusion_png(cm: np.ndarray, class_names: list[str], path: Path) -> None:
@@ -53,7 +57,17 @@ def evaluate_checkpoint(
     """Score a checkpoint on a split's base tiles; write artifacts; return the report.
 
     Reused by the CLI below and by seabed_unet.crossval (per-fold configs).
+    Logs to stdout and <run_dir>/eval_<split>.log.
     """
+    setup_logging()
+    file_handler = add_file_handler(cfg.run_dir / f"eval_{split}.log")
+    try:
+        return _evaluate_checkpoint(cfg, split, checkpoint)
+    finally:
+        remove_handler(file_handler)
+
+
+def _evaluate_checkpoint(cfg, split: str, checkpoint: str | Path | None) -> dict:
     device = resolve_device(cfg.train.device)
 
     ckpt_path = Path(checkpoint) if checkpoint else cfg.run_dir / "best.pt"
@@ -63,7 +77,7 @@ def evaluate_checkpoint(
             f"checkpoint was trained on bands {ckpt['config']['bands']}, "
             f"config asks for {cfg.bands}"
         )
-    print(f"[+] {cfg.name}: checkpoint epoch {ckpt['epoch']} "
+    logger.info(f"[+] {cfg.name}: checkpoint epoch {ckpt['epoch']} "
           f"(val macro-Dice {ckpt['val_macro_dice']:.4f}) on split '{split}'")
 
     stats = load_stats(cfg.run_dir / "normalization_stats.json")
@@ -86,13 +100,13 @@ def evaluate_checkpoint(
     report["polygons"] = sorted({r.polygon for r in records})
     report["n_tiles"] = len(ds)
 
-    print(f"    tiles {len(ds)}  scored px {cm.sum():,}")
-    print(f"    overall accuracy {report['overall_accuracy']:.4f}")
-    print(f"    cohen's kappa    {report['cohens_kappa']:.4f}")
-    print(f"    macro dice       {report['macro_dice']:.4f}")
+    logger.info(f"    tiles {len(ds)}  scored px {cm.sum():,}")
+    logger.info(f"    overall accuracy {report['overall_accuracy']:.4f}")
+    logger.info(f"    cohen's kappa    {report['cohens_kappa']:.4f}")
+    logger.info(f"    macro dice       {report['macro_dice']:.4f}")
     for name in class_names:
         c = report["per_class"][name]
-        print(f"      {name:<13} dice {c['dice']:.4f}  PAcc {c['producers_accuracy']:.4f}  "
+        logger.info(f"      {name:<13} dice {c['dice']:.4f}  PAcc {c['producers_accuracy']:.4f}  "
               f"UAcc {c['users_accuracy']:.4f}  ({c['support_px']:,} px)")
 
     out_dir = cfg.run_dir / f"eval_{split}"
@@ -101,7 +115,7 @@ def evaluate_checkpoint(
     np.savetxt(out_dir / "confusion_matrix.csv", cm, fmt="%d", delimiter=",",
                header=",".join(class_names), comments="")
     save_confusion_png(cm, class_names, out_dir / "confusion_matrix.png")
-    print(f"[+] report -> {out_dir}")
+    logger.info(f"[+] report -> {out_dir}")
     return report
 
 

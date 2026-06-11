@@ -13,6 +13,7 @@ with .jgw/.prj sidecars to <run_dir>/maps/.
 from __future__ import annotations
 
 import argparse
+import logging
 import math
 from pathlib import Path
 
@@ -26,8 +27,11 @@ from seabed_tiler.viz import label_to_rgb, write_prj, write_worldfile
 from .config import load_config
 from .data import load_run_records
 from .inference import load_checkpoint, predict_probs
+from .logging_utils import add_file_handler, setup_logging
 from .normalize import apply_stats, compute_band_stats, load_stats
 from .train import resolve_device
+
+logger = logging.getLogger(__name__)
 
 
 def _records_extent(records) -> tuple[float, float, float, float, float]:
@@ -105,6 +109,8 @@ def main(argv=None) -> None:
 
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg = load_config(args.config, base_dir=base)
+    setup_logging()
+    add_file_handler(cfg.run_dir / "predict.log")
     device = resolve_device(cfg.train.device)
     # Default target: first test polygon (polygon mode) or first split polygon
     # (spatial_blocks mode, where every polygon has a test region).
@@ -122,7 +128,7 @@ def main(argv=None) -> None:
     records = load_run_records(
         cfg.rot_dir(polygon), polygon, cfg.bands, cfg.base_dir, augmented=False
     )
-    print(f"[+] {cfg.name}: mapping {polygon} from {len(records)} base tiles")
+    logger.info(f"[+] {cfg.name}: mapping {polygon} from {len(records)} base tiles")
 
     stats = load_stats(cfg.run_dir / "normalization_stats.json")
     band_modes = cfg.normalization.modes_for(cfg.bands)
@@ -139,7 +145,7 @@ def main(argv=None) -> None:
             )
             for i, band in per_poly_bands
         }
-        print(f"    {polygon} not in training stats — self-normalized "
+        logger.info(f"    {polygon} not in training stats — self-normalized "
               f"{[b for _, b in per_poly_bands]}")
 
     class_map, transform, crs = build_class_map(
@@ -166,8 +172,8 @@ def main(argv=None) -> None:
     write_prj(jpg_path, crs)
 
     covered_px = int((class_map > 0).sum())
-    print(f"    {class_map.shape[0]}x{class_map.shape[1]} px, {covered_px:,} classified")
-    print(f"[+] map -> {tif_path} (+ colorized JPEG)")
+    logger.info(f"    {class_map.shape[0]}x{class_map.shape[1]} px, {covered_px:,} classified")
+    logger.info(f"[+] map -> {tif_path} (+ colorized JPEG)")
 
 
 if __name__ == "__main__":

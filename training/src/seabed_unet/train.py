@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import logging
 import random
 import shutil
 from pathlib import Path
@@ -23,12 +24,15 @@ import torch
 from torch.utils.data import DataLoader
 
 from .config import Config, load_config
+from .logging_utils import add_file_handler, remove_handler, setup_logging
 from .data import features_by_polygon, load_split_records
 from .dataset import TileDataset
 from .losses import MaskedSegmentationLoss, compute_class_weights
 from .metrics import confusion_matrix, dice_per_class
 from .normalize import compute_stats, save_stats
 from .unet import UNet
+
+logger = logging.getLogger(__name__)
 
 
 def resolve_device(requested: str) -> torch.device:
@@ -92,20 +96,30 @@ def run_training(cfg: Config, limit: int | None = None) -> dict:
     """Train one model from a fully-resolved config; return a summary dict.
 
     Reused by the CLI below and by seabed_unet.crossval (per-fold configs).
+    Logs to stdout and <run_dir>/train.log.
     """
-    seed_everything(cfg.train.seed)
-    device = resolve_device(cfg.train.device)
-    print(f"[+] {cfg.name}: bands={cfg.bands} device={device.type}")
-
-    train_ds, val_ds, stats, _ = build_datasets(cfg, limit=limit)
-    band_modes = cfg.normalization.modes_for(cfg.bands)
-    print(f"    train={len(train_ds)} tiles (D4={'on' if cfg.train.d4_augment else 'off'}) "
-          f"val={len(val_ds)} tiles  split={cfg.split.mode}  norm={band_modes}")
-
+    setup_logging()
     run_dir = cfg.run_dir
     if run_dir.exists():
         shutil.rmtree(run_dir)
     run_dir.mkdir(parents=True)
+    file_handler = add_file_handler(run_dir / "train.log")
+    try:
+        return _run_training(cfg, run_dir, limit)
+    finally:
+        remove_handler(file_handler)
+
+
+def _run_training(cfg: Config, run_dir: Path, limit: int | None) -> dict:
+    seed_everything(cfg.train.seed)
+    device = resolve_device(cfg.train.device)
+    logger.info(f"[+] {cfg.name}: bands={cfg.bands} device={device.type}")
+
+    train_ds, val_ds, stats, _ = build_datasets(cfg, limit=limit)
+    band_modes = cfg.normalization.modes_for(cfg.bands)
+    logger.info(f"    train={len(train_ds)} tiles (D4={'on' if cfg.train.d4_augment else 'off'}) "
+                f"val={len(val_ds)} tiles  split={cfg.split.mode}  norm={band_modes}")
+
     save_stats(stats, run_dir / "normalization_stats.json")
 
     if cfg.loss.class_weights == "auto":
@@ -113,7 +127,7 @@ def run_training(cfg: Config, limit: int | None = None) -> dict:
         class_weights = torch.tensor(weights_np, device=device)
         named = {cfg.id_to_name[cid]: round(float(w), 3)
                  for cid, w in zip(cfg.class_ids, weights_np)}
-        print(f"    class weights {named}")
+        logger.info(f"    class weights {named}")
     else:
         class_weights = None
 
@@ -128,7 +142,7 @@ def run_training(cfg: Config, limit: int | None = None) -> dict:
         base_filters=cfg.model.base_filters, depth=cfg.model.depth,
     ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f"    UNet depth={cfg.model.depth} base={cfg.model.base_filters} "
+    logger.info(f"    UNet depth={cfg.model.depth} base={cfg.model.base_filters} "
           f"params={n_params:,}")
 
     criterion = MaskedSegmentationLoss(
@@ -177,11 +191,11 @@ def run_training(cfg: Config, limit: int | None = None) -> dict:
                 run_dir / "best.pt",
             )
             marker = "  *best*"
-        print(f"    epoch {epoch:3d}  loss {train_loss:.4f}  "
+        logger.info(f"    epoch {epoch:3d}  loss {train_loss:.4f}  "
               f"val dice {val_dice:.4f}  lr {lr:.2e}{marker}")
 
         if epoch - best_epoch >= cfg.train.early_stop_patience:
-            print(f"[+] early stop at epoch {epoch} "
+            logger.info(f"[+] early stop at epoch {epoch} "
                   f"(no val improvement for {cfg.train.early_stop_patience})")
             break
 
@@ -190,7 +204,7 @@ def run_training(cfg: Config, limit: int | None = None) -> dict:
         writer.writeheader()
         writer.writerows(history)
 
-    print(f"[+] best val macro-Dice {best_dice:.4f} (epoch {best_epoch}) -> {run_dir}")
+    logger.info(f"[+] best val macro-Dice {best_dice:.4f} (epoch {best_epoch}) -> {run_dir}")
     return {
         "name": cfg.name,
         "best_val_macro_dice": best_dice,

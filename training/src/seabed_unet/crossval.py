@@ -17,13 +17,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from pathlib import Path
 
 import numpy as np
 
 from .config import Config, load_config
 from .evaluate import evaluate_checkpoint
+from .logging_utils import add_file_handler, setup_logging
 from .train import run_training
+
+logger = logging.getLogger(__name__)
 
 FOLD_ORDER = ["polygon1", "polygon3", "polygon4", "polygon5"]
 
@@ -75,11 +79,11 @@ def summarize(fold_reports: dict[str, dict], class_names: list[str]) -> dict:
 
 def print_table(summary: dict) -> None:
     folds = list(next(iter(summary.values()))["per_fold"].keys())
-    print("\n| metric | " + " | ".join(folds) + " | mean ± std |")
-    print("|---|" + "---|" * (len(folds) + 1))
+    logger.info(f"\n| metric | " + " | ".join(folds) + " | mean ± std |")
+    logger.info(f"|---|" + "---|" * (len(folds) + 1))
     for metric, s in summary.items():
         row = " | ".join(f"{s['per_fold'][f]:.3f}" for f in folds)
-        print(f"| {metric} | {row} | {s['mean']:.3f} ± {s['std']:.3f} |")
+        logger.info(f"| {metric} | {row} | {s['mean']:.3f} ± {s['std']:.3f} |")
 
 
 def main(argv=None) -> None:
@@ -100,13 +104,17 @@ def main(argv=None) -> None:
 
     polygons = cfg.split.polygons or FOLD_ORDER
     lopo_name = f"{cfg.name}_lopo"
+    lopo_dir = cfg.base_dir / cfg.runs_dir / lopo_name
+    lopo_dir.mkdir(parents=True, exist_ok=True)
+    setup_logging()
+    add_file_handler(lopo_dir / "crossval.log")  # whole-sweep log, incl. folds
     folds = lopo_folds(polygons)
-    print(f"[+] {lopo_name}: {len(folds)} folds over {polygons}")
+    logger.info(f"[+] {lopo_name}: {len(folds)} folds over {polygons}")
 
     fold_reports: dict[str, dict] = {}
     for fold in folds:
         test_poly = fold["test"][0]
-        print(f"\n[+] ===== fold test={test_poly} val={fold['val'][0]} "
+        logger.info(f"\n[+] ===== fold test={test_poly} val={fold['val'][0]} "
               f"train={fold['train']} =====")
         fcfg = fold_config(cfg, fold, lopo_name)
         run_training(fcfg, limit=args.limit)
@@ -115,11 +123,9 @@ def main(argv=None) -> None:
     class_names = [cfg.id_to_name[cid] for cid in cfg.class_ids]
     summary = summarize(fold_reports, class_names)
 
-    lopo_dir = cfg.base_dir / cfg.runs_dir / lopo_name
-    lopo_dir.mkdir(parents=True, exist_ok=True)
     (lopo_dir / "summary.json").write_text(json.dumps(summary, indent=2))
     print_table(summary)
-    print(f"\n[+] LOPO summary -> {lopo_dir / 'summary.json'}")
+    logger.info(f"\n[+] LOPO summary -> {lopo_dir / 'summary.json'}")
 
 
 if __name__ == "__main__":
