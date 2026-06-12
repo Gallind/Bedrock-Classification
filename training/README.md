@@ -33,6 +33,9 @@ export PYTHONPATH=tiling/src:training/src
 # Classified map (georeferenced GeoTIFF + colorized JPEG) for any polygon
 .venv-train/bin/python -m seabed_unet.predict --config training/config/experiment_3band.yaml --polygon polygon4
 
+# Leave-one-polygon-out cross-validation (4 retrains; the honest cross-survey number)
+.venv-train/bin/python -m seabed_unet.crossval --config training/config/experiment_3band.yaml
+
 # Tests
 .venv-train/bin/python -m pytest training/tests -q
 ```
@@ -43,16 +46,23 @@ export PYTHONPATH=tiling/src:training/src
   not a class: it is ignored in loss and metrics together with every pixel where any
   feature band is nodata (−9999) / NaN — otherwise the model learns that "no data"
   means "background seabed".
-- **Split is by whole polygon** (config `split:`): test = polygon4, val = polygon3,
-  train = polygon1 + polygon5 (`_rot` + `_rotaug` + training-time D4 via
-  `seabed_tiler.augment`). Tiles overlap 50%, so random tile splits would leak.
-  Future polygons: add them to the split lists; full leave-one-polygon-out CV is a
-  config change.
-- **Per-polygon normalization** (default): each survey self-normalized to [0,1] with
-  2–98 percentile clipping, computed from features only — legitimate at inference
-  (a new survey self-normalizes) and required to bridge the backscatter domain shift
-  (polygon1 = JPEG grayscale 0–255 vs polygons 3/4/5 = real dB). `global` mode
-  (train-stats only) is available for paper-faithful comparison.
+- **Two split schemes** (config `split.mode`). Random tile splits are forbidden —
+  tiles overlap 50%, so they leak near-duplicate pixels (`docs/DATA_AUGMENTATION.md`):
+  - `spatial_blocks` (default, development): every polygon is cut into contiguous
+    VAL | TRAIN | TEST regions along its survey long axis; tiles within `buffer_m`
+    (96 m > tile half-diagonal 90.5 m) of a boundary are dropped, so splits share
+    **zero pixels** by construction. All four surveys contribute to training.
+    The small regions sit at the strip ends because a middle band would need
+    2× buffer of clearance — wider than the band itself on these short surveys.
+  - `polygon` (reporting): whole-polygon holdout; `seabed_unet.crossval` runs
+    leave-one-polygon-out over all four polygons and reports mean±std — the only
+    number that measures generalization to an unseen survey.
+- **Per-band normalization** (config `normalization.band_modes`): bathymetry and
+  slope are normalized **globally** (one train-only range, preserving absolute
+  depth across surveys — shallow_rock is literally defined by depth, which
+  per-polygon scaling erases); backscatter stays **per-polygon** (the survey
+  self-normalizes, bridging the JPEG-grayscale-vs-dB domain shift; feature-only,
+  so legitimate at inference on a new survey).
 - **Loss** = weighted CE + soft Dice (both masked); class weights = inverse pixel
   frequency from train pixels only.
 - **Architecture**: classic U-Net, depth 4, base 16 filters (~1.9M params), variable
@@ -70,35 +80,65 @@ Two band configurations, same split, same seed:
 | E1 | `experiment_3band.yaml` | backscatter + bathymetry + slope |
 | E2 | `experiment_2band.yaml` | bathymetry + slope |
 
-### Results (test = polygon4, never seen in training)
+### Results — round 1 (spatial blocks + per-band normalization, seed 42)
 
-Both runs: seed 42, early stopping on val (polygon3) macro-Dice, ~10 min on MPS.
+Two protocols, two questions. They are **not comparable to each other**: the
+development split tests within surveys the model has partly seen; LOPO tests on
+a survey the model has never seen.
 
-| Metric (test) | E1 3-band | E2 2-band |
+#### Development split (spatial blocks; val/test = 14 tiles each)
+
+| Metric (test regions) | 3-band | 2-band |
 |---|---|---|
-| best val macro-Dice (polygon3) | **0.807** (ep 20/45) | 0.791 (ep 9/34) |
-| overall accuracy | 0.448 | **0.480** |
-| Cohen's kappa | 0.110 | **0.250** |
-| macro Dice | **0.496** | 0.461 |
-| rock Dice (PAcc/UAcc) | **0.736** (0.71/0.77) | 0.430 (0.77/0.30) |
-| shallow_rock Dice | 0.277 (0.24/0.33) | **0.584** (0.62/0.56) |
-| sand Dice | **0.476** (0.55/0.42) | 0.369 (0.23/0.87) |
+| overall accuracy | **0.875** | 0.748 |
+| Cohen's kappa | **0.729** | 0.454 |
+| macro Dice | **0.836** | 0.665 |
+| rock Dice | **0.956** | 0.878 |
+| shallow_rock Dice | **0.642** | 0.294 |
+| sand Dice | **0.912** | 0.822 |
 
-Reports: `training/runs/<exp>/eval_test/metrics.json` + confusion matrices;
-maps: `training/runs/<exp>/maps/polygon4_pred.{tif,jpg}` (compare against
-`outputs/polygon4/t128m_o50pct_r1m_rot/stitched/labels.jpg`).
+#### Cross-survey generalization (LOPO, mean ± std over 4 folds)
 
-**Reading of the results.** The val→test drop (0.80 → ~0.47 macro-Dice) is the
-cross-survey generalization gap expected from ~1–2 km² of training data — val
-scores look good because polygon3 resembles the training surveys more than
-polygon4 does. The two band sets fail differently: **E1 (with backscatter)
-recovers the rock outcrops well** — its predicted map places the central rock
-massif correctly — but collapses most of the shallow_rock halo into sand.
-**E2 (bathy+slope only) trades that for shallow_rock recall**, over-painting
-rock across the survey (rock UAcc 0.30). Neither dominates; with whole-polygon
-holdouts this small, per-fold variance is large, so treat these as a baseline
-to beat, not a model selection verdict. Next probes: full 4-fold LOPO CV (config
-change only) and a hillshade band.
+| Metric (held-out polygon) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.724 ± 0.100** | 0.551 ± 0.227 |
+| Cohen's kappa | **0.496 ± 0.133** | 0.284 ± 0.250 |
+| macro Dice | **0.644 ± 0.094** | 0.473 ± 0.157 |
+| rock Dice | **0.817 ± 0.080** | 0.636 ± 0.200 |
+| shallow_rock Dice | **0.419 ± 0.270** | 0.208 ± 0.153 |
+| sand Dice | **0.697 ± 0.218** | 0.575 ± 0.251 |
+
+Artifacts: `training/runs/<exp>/eval_test/` (blocks), `training/runs/<exp>_lopo/`
+(per-fold runs + `summary.json`), maps in `training/runs/<exp>/maps/`.
+
+**Reading of the results.**
+- **Per-band normalization worked.** Round 0 (per-polygon scaling everywhere,
+  whole-polygon split test=polygon4) scored macro-Dice 0.496 (3-band); the
+  matching LOPO fold now scores **0.618** on the same test polygon, and sand
+  Dice on that fold jumped 0.476 → 0.743. Restoring absolute depth was the
+  single biggest lever, exactly as hypothesized (shallow_rock is depth-defined).
+  (Caveat: round-0 trained on poly1+5/val poly3; the LOPO fold trains on
+  poly1+3/val poly5 — same test survey, slightly different train mix.)
+- **Backscatter earns its place.** 3-band beats 2-band on every metric under
+  both protocols (LOPO macro-Dice 0.644 vs 0.473) — per-polygon backscatter
+  normalization successfully bridges the grayscale-vs-dB shift; round 0's
+  "neither dominates" verdict is overturned.
+- **The predicted polygon4 map** now reproduces the reference structure: rock
+  massif, shallow_rock halo on the correct flank, clean sand basin (compare
+  `runs/unet_3band/maps/polygon4_pred.jpg` with
+  `outputs/polygon4/t128m_o50pct_r1m_rot/stitched/labels.jpg`).
+- **Remaining weak spot: shallow_rock across surveys** (LOPO 0.419 ± 0.270; the
+  polygon5 fold scores 0.000 — that survey has only ~11% shallow_rock pixels and
+  12 base tiles, so the class essentially vanishes from its fold). More
+  annotated area with shallow_rock is the highest-value data request.
+- The dev-split numbers (0.836 macro-Dice) are the optimistic within-survey view;
+  quote the LOPO numbers when describing generalization. Dev val/test are only
+  14 tiles each — the geometric maximum for leak-free tile-level eval regions on
+  these short survey strips (96 m buffers eat 15% bands; polygon3 contributes
+  train-only).
+
+Next probes: hillshade 4th band, D4 test-time augmentation + E3/E4 ensemble
+(inverse_op exists in `seabed_tiler.augment`), RF per-pixel baseline.
 
 ## Honest expectations
 
