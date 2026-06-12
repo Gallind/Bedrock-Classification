@@ -15,6 +15,7 @@ Two label encodings are supported (see ``LabelsConfig.kind``):
 from __future__ import annotations
 
 import logging
+import math
 import re
 
 import geopandas as gpd
@@ -57,11 +58,14 @@ def _iter_polys(geom) -> list:
     return []
 
 
-def _feature_to_polygons(geom, polygonize: bool) -> list:
+def _feature_to_polygons(geom, polygonize: bool, close_tolerance_m: float = 0.0) -> list:
     """Convert one shapefile feature to polygons, repairing invalid geometry.
 
-    Polygon/MultiPolygon features are validated and returned. LineString features are
-    closed into polygons only when ``polygonize`` is set and the ring closes (else []).
+    Polygon/MultiPolygon features are validated and returned. LineString features
+    are closed into polygons only when ``polygonize`` is set and the ring closes
+    (else []). Rings left open by up to ``close_tolerance_m`` meters are snapped
+    shut first — annotators sometimes miss the final vertex by a hair (polygon3's
+    two largest annotations were open by 0.1-1.1 m and silently dropped).
     """
     if geom is None or geom.is_empty:
         return []
@@ -69,6 +73,18 @@ def _feature_to_polygons(geom, polygonize: bool) -> list:
         return [p for p in _iter_polys(make_valid(geom)) if p.area > 0]
     if polygonize and geom.geom_type in ("LineString", "LinearRing"):
         coords = list(geom.coords)
+        if (
+            close_tolerance_m > 0.0
+            and len(coords) >= 4
+            and coords[0] != coords[-1]
+        ):
+            gap = math.dist(coords[0][:2], coords[-1][:2])
+            if gap <= close_tolerance_m:
+                logger.info(
+                    "    [snap] closing ring open by %.2f m (tolerance %.1f m)",
+                    gap, close_tolerance_m,
+                )
+                coords = coords + [coords[0]]
         if len(coords) >= 4 and coords[0] == coords[-1]:
             polys = [p for p in _iter_polys(make_valid(Polygon(coords))) if p.area > 0]
             if polys:
@@ -85,6 +101,7 @@ def build_label_per_class(cfg: Config, transform, crs, shape) -> np.ndarray:
     class_files = cfg.labels.class_files or {}
     priority = cfg.labels.priority or list(classes)
     polygonize = cfg.labels.polygonize
+    close_tolerance_m = cfg.labels.close_tolerance_m
 
     shapes: list[tuple] = []
     for class_name in priority:
@@ -94,7 +111,7 @@ def build_label_per_class(cfg: Config, transform, crs, shape) -> np.ndarray:
             gdf = gpd.read_file(cfg.src_path / fname)
             gdf = gdf.set_crs(cfg.crs) if gdf.crs is None else gdf.to_crs(cfg.crs)
             for idx, geom in enumerate(gdf.geometry):
-                polys = _feature_to_polygons(geom, polygonize)
+                polys = _feature_to_polygons(geom, polygonize, close_tolerance_m)
                 if polys:
                     shapes.extend((p, class_id) for p in polys)
                     kept += 1
