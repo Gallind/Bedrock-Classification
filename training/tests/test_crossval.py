@@ -58,3 +58,33 @@ def test_summarize_mean_std():
     assert summary["overall_accuracy"]["mean"] == pytest.approx(0.5)
     assert summary["macro_dice"]["std"] == pytest.approx(0.1)
     assert summary["dice_rock"]["per_fold"] == {"a": 0.6, "b": 0.8}
+
+
+def test_device_cycle_single_value():
+    from seabed_unet.crossval import device_cycle
+    assert device_cycle("cpu", 4) == ["cpu"] * 4
+    assert device_cycle(None, 2) == ["cpu", "cpu"]
+
+
+def test_device_cycle_comma_list_round_robin():
+    from seabed_unet.crossval import device_cycle
+    assert device_cycle("mps,cpu,cpu", 4) == ["mps", "cpu", "cpu", "mps"]
+    assert device_cycle(" mps , cpu ", 3) == ["mps", "cpu", "mps"]
+
+
+def test_threads_per_job_divides_physical_cores():
+    from seabed_unet.crossval import threads_per_job
+    assert threads_per_job(jobs=2, logical_cores=12) == 3   # 6 physical / 2
+    assert threads_per_job(jobs=3, logical_cores=12) == 2
+    assert threads_per_job(jobs=8, logical_cores=4) == 1    # never below 1
+
+
+def test_fold_command_roundtrip():
+    from seabed_unet.crossval import fold_command
+    cmd = fold_command("cfg.yaml", "polygon4", "cpu", epochs=2, limit=8)
+    assert "--fold" in cmd and "polygon4" in cmd
+    assert cmd[cmd.index("--device") + 1] == "cpu"
+    assert cmd[cmd.index("--epochs") + 1] == "2"
+    assert cmd[cmd.index("--limit") + 1] == "8"
+    # no smoke flags -> not in argv
+    assert "--epochs" not in fold_command("c.yaml", "p", "cpu", None, None)
