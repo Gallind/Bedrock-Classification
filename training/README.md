@@ -84,7 +84,45 @@ Two band configurations, same split, same seed:
 | E1 | `experiment_3band.yaml` | backscatter + bathymetry + slope |
 | E2 | `experiment_2band.yaml` | bathymetry + slope |
 
-### Results — round 1 (spatial blocks + per-band normalization, seed 42)
+### Results — round 2 (fixed polygon3 labels, seed 42) — CURRENT
+
+Round 1's numbers (below) were measured against **incomplete polygon3 ground
+truth**: its two largest annotations (rings left open by 0.1–1.1 m, ~0.15 km²)
+were silently dropped during rasterization, leaving 47% of that survey
+unlabeled. The `close_tolerance_m` fix recovered them (coverage now 94.2%);
+round 2 retrains and rescores everything on the corrected dataset.
+
+#### Development split (spatial blocks; test = 14 tiles)
+
+| Metric (test regions) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.782** | 0.670 |
+| Cohen's kappa | **0.599** | 0.386 |
+| macro Dice | **0.784** | 0.670 |
+| rock / shallow_rock / sand Dice | 0.955 / 0.568 / 0.827 | 0.916 / 0.356 / 0.738 |
+
+#### Cross-survey generalization (LOPO, mean ± std over 4 folds)
+
+| Metric (held-out polygon) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.710 ± 0.121** | 0.582 ± 0.188 |
+| Cohen's kappa | **0.481 ± 0.147** | 0.299 ± 0.216 |
+| macro Dice | **0.608 ± 0.084** | 0.483 ± 0.155 |
+| rock Dice | **0.841 ± 0.121** | 0.629 ± 0.250 |
+| shallow_rock Dice | **0.371 ± 0.271** | 0.239 ± 0.217 |
+| sand Dice | **0.612 ± 0.266** | 0.580 ± 0.201 |
+
+**Reading.** Headline numbers moved slightly *down* vs round 1 — that is the
+honest correction, not a regression: the polygon3 LOPO fold is now scored on
+~2× the labeled area (0.745 macro-Dice on the full survey vs 0.802 on the
+labeled half), and every fold's training distribution shifted with the
+recovered labels (polygon3 is now 50% rock). Round-1 and round-2 numbers are
+**not comparable**; round 2 is the trustworthy baseline going forward.
+Unchanged conclusions: 3-band beats 2-band on every metric under both
+protocols; rock is solid cross-survey (0.84); shallow_rock remains the weak
+class (polygon5 fold ≈ 0 — that survey has almost no shallow_rock tiles).
+
+### Results — round 1 (superseded: incomplete polygon3 ground truth)
 
 Two protocols, two questions. They are **not comparable to each other**: the
 development split tests within surveys the model has partly seen; LOPO tests on
