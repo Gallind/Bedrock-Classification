@@ -7,7 +7,14 @@ from rasterio.transform import from_origin
 
 from seabed_unet.data import IGNORE_INDEX, TileRecord
 from seabed_unet.predict import MapAccumulator, feature_valid_mask
-from seabed_unet.watch import compose_input_rgb, masked_label_rgb, tile_macro_dice
+from seabed_unet.watch import (
+    build_backdrop,
+    class_overlay,
+    masked_label_rgb,
+    render_band,
+    tile_macro_dice,
+    tile_outline_px,
+)
 
 NODATA = -9999.0
 CLASS_IDS = [1, 2, 3]
@@ -23,17 +30,60 @@ def make_record(x0=600000.0, y0=3600000.0, size=8, fill=1.0):
     )
 
 
-def test_compose_input_rgb_three_bands():
-    inputs = np.stack([np.full((4, 4), v, dtype=np.float32) for v in (0.0, 0.5, 1.0)])
-    rgb = compose_input_rgb(inputs)
+def test_render_band_shape_and_mask():
+    band = np.linspace(0, 1, 16, dtype=np.float32).reshape(4, 4)
+    valid = np.ones((4, 4), dtype=bool)
+    valid[0, 0] = False
+    rgb = render_band(band, valid, "bathymetry")
     assert rgb.shape == (4, 4, 3) and rgb.dtype == np.uint8
-    assert rgb[0, 0].tolist() == [0, 127, 255]
+    assert (rgb[0, 0] == 0).all()          # invalid -> black
+    assert rgb[3, 3].sum() > 0
 
 
-def test_compose_input_rgb_two_bands_pads_blue():
-    inputs = np.ones((2, 4, 4), dtype=np.float32)
-    rgb = compose_input_rgb(inputs)
-    assert rgb[..., 2].max() == 0  # missing band -> zero channel
+def test_render_band_unknown_band_falls_back_to_gray():
+    band = np.full((2, 2), 0.5, dtype=np.float32)
+    rgb = render_band(band, np.ones((2, 2), dtype=bool), "hillshade")
+    r, g, b = rgb[0, 0]
+    assert r == g == b  # grayscale fallback
+
+
+def test_build_backdrop_covers_tiles_only():
+    records = [make_record(x0=600000.0), make_record(x0=600016.0)]  # gap between
+    acc = MapAccumulator(records, CLASS_IDS, NODATA)
+    stats = {"p": {b: (0.0, 2.0) for b in ("b0", "b1")}}
+    modes = {b: "per_polygon" for b in ("b0", "b1")}
+    backdrop = build_backdrop(records, acc, ["b0", "b1"], stats, modes, NODATA)
+    assert backdrop.shape == (acc.n_rows, acc.n_cols, 3)
+    assert backdrop[:, :8].max() > 0       # first tile covered
+    assert (backdrop[:, 9:15] == 0).all()  # gap stays black
+    # grayscale: channels equal
+    assert np.array_equal(backdrop[..., 0], backdrop[..., 1])
+
+
+def test_class_overlay_paints_only_classified_pixels():
+    backdrop = np.full((4, 4, 3), 100, dtype=np.uint8)
+    class_map = np.zeros((4, 4), dtype=np.uint8)
+    class_map[0, 0] = 1
+    out = class_overlay(backdrop, class_map, alpha=1.0)
+    assert not np.array_equal(out[0, 0], backdrop[0, 0])   # painted
+    assert np.array_equal(out[1:, :], backdrop[1:, :])     # untouched
+
+
+def test_class_overlay_alpha_blends_with_backdrop():
+    backdrop = np.zeros((1, 1, 3), dtype=np.uint8)
+    class_map = np.ones((1, 1), dtype=np.uint8)
+    full = class_overlay(backdrop, class_map, alpha=1.0)[0, 0].astype(int)
+    half = class_overlay(backdrop, class_map, alpha=0.5)[0, 0].astype(int)
+    assert (half <= full).all() and half.sum() < full.sum()
+
+
+def test_tile_outline_px_axis_aligned():
+    r = make_record(x0=600004.0, y0=3599996.0)  # 4 px right, 4 px down of map origin
+    acc = MapAccumulator([make_record(), r], CLASS_IDS, NODATA)
+    corners = tile_outline_px(r, acc)
+    assert corners.shape == (4, 2)
+    assert corners[0].tolist() == [4.0, 4.0]    # upper-left corner (col, row)
+    assert corners[2].tolist() == [12.0, 12.0]  # lower-right corner
 
 
 def test_masked_label_rgb_blacks_out_invalid():

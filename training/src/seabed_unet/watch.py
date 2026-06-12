@@ -1,14 +1,16 @@
-"""Live inference viewer: watch the model classify a polygon's tiles.
+"""Live inference viewer: watch the full polygon being classified tile by tile.
 
 Run from repo root:
   PYTHONPATH=tiling/src:training/src .venv-train/bin/python -m seabed_unet.watch \
       --config training/config/experiment_3band.yaml --polygon polygon4 --delay 0.4
 
-Opens a matplotlib window stepping through the polygon's base (_rot) tiles in
-manifest (row/col) order: input bands | model prediction | ground truth on top,
-and the blended classified map painting itself in below (same mask-weighted
-softmax blending as seabed_unet.predict, re-argmaxed each step so overlapping
-tiles refine live). Each step shows the tile's macro Dice against the labels.
+Top row: the CURRENT tile in each input band (backscatter grayscale, bathymetry
+'summer', slope 'YlOrRd' — matching the project's render conventions) plus the
+model's classification of that tile. Main panel: the full polygon rendered as a
+grayscale survey backdrop, with class colors painting in as tiles are
+classified (same mask-weighted softmax blending as seabed_unet.predict,
+re-argmaxed each step so overlapping tiles refine live) and a yellow outline
+marking the tile currently under the model.
 
 --save also writes an animated GIF (half resolution) next to the run's maps.
 Closing the window stops the session cleanly.
@@ -22,6 +24,8 @@ import time
 from pathlib import Path
 
 import numpy as np
+from rasterio.enums import Resampling
+from rasterio.warp import reproject
 
 from seabed_tiler.viz import label_to_rgb
 
@@ -36,18 +40,19 @@ from .train import resolve_device
 
 logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
+# Same per-band looks as the tiler's JPEG renders (viz.BAND_STYLE), minus hillshade.
+BAND_CMAPS = {"backscatter": "gray", "bathymetry": "summer", "slope": "YlOrRd"}
+OVERLAY_ALPHA = 0.8  # how strongly class colors cover the survey backdrop
 
-def compose_input_rgb(inputs: np.ndarray) -> np.ndarray:
-    """(B, H, W) normalized [0,1] features -> (H, W, 3) uint8 composite.
 
-    First three bands map to R, G, B; missing bands (2-band experiments) are
-    zero-filled so the composite stays interpretable rather than failing.
-    """
-    _, h, w = inputs.shape
-    rgb = np.zeros((h, w, 3), dtype=np.float32)
-    for c in range(min(3, inputs.shape[0])):
-        rgb[..., c] = inputs[c]
-    return (np.clip(rgb, 0.0, 1.0) * 255).astype(np.uint8)
+def render_band(norm_band: np.ndarray, valid: np.ndarray, band_name: str) -> np.ndarray:
+    """One normalized [0,1] band -> (H, W, 3) uint8 via its conventional colormap."""
+    from matplotlib import colormaps
+
+    cmap = colormaps[BAND_CMAPS.get(band_name, "gray")]
+    rgb = (cmap(np.clip(norm_band, 0.0, 1.0))[..., :3] * 255).astype(np.uint8)
+    rgb[~valid] = 0
+    return rgb
 
 
 def masked_label_rgb(class_id_map: np.ndarray, valid: np.ndarray) -> np.ndarray:
@@ -63,6 +68,59 @@ def tile_macro_dice(
     """Macro Dice of one tile's prediction vs its encoded target (NaN if unlabeled)."""
     cm = confusion_matrix(pred_channels, target, num_classes)
     return float(np.nanmean(dice_per_class(cm)))
+
+
+def build_backdrop(
+    records, acc: MapAccumulator, bands, stats, band_modes, nodata: float
+) -> np.ndarray:
+    """(H, W, 3) uint8 grayscale mosaic of the whole polygon on the map grid.
+
+    Mean of the normalized input bands, reprojected tile by tile with the same
+    mask-weighted averaging as the class map — so backdrop and classification
+    are guaranteed pixel-aligned. Uncovered pixels stay black.
+    """
+    lum_sum = np.zeros((acc.n_rows, acc.n_cols), dtype=np.float64)
+    weight = np.zeros((acc.n_rows, acc.n_cols), dtype=np.float64)
+    for r in records:
+        inputs = apply_stats(r.features, r.polygon, bands, stats, nodata, band_modes)
+        valid = feature_valid_mask(r.features, nodata).astype(np.float32)
+        lum = inputs.mean(axis=0) * valid
+        dst = np.zeros((2, acc.n_rows, acc.n_cols), dtype=np.float32)
+        for b, src in enumerate((lum, valid)):
+            reproject(
+                source=src, destination=dst[b],
+                src_transform=r.transform, src_crs=r.crs,
+                dst_transform=acc.transform, dst_crs=acc.crs,
+                resampling=Resampling.bilinear,
+            )
+        lum_sum += dst[0]
+        weight += dst[1]
+    lum = np.where(weight > 1e-3, lum_sum / np.maximum(weight, 1e-9), 0.0)
+    gray = (np.clip(lum, 0.0, 1.0) * 255).astype(np.uint8)
+    return np.repeat(gray[..., np.newaxis], 3, axis=2)
+
+
+def class_overlay(
+    backdrop: np.ndarray, class_map: np.ndarray, alpha: float = OVERLAY_ALPHA
+) -> np.ndarray:
+    """Paint classified pixels over the backdrop; unclassified pixels keep terrain."""
+    out = backdrop.copy()
+    classified = class_map > 0
+    colors = label_to_rgb(class_map)
+    out[classified] = (
+        alpha * colors[classified].astype(np.float32)
+        + (1.0 - alpha) * backdrop[classified].astype(np.float32)
+    ).astype(np.uint8)
+    return out
+
+
+def tile_outline_px(record, acc: MapAccumulator) -> np.ndarray:
+    """(4, 2) tile corner positions in map-pixel (col, row) coords for the marker."""
+    h, w = record.label.shape
+    res = acc.transform.a
+    xmin, ymax = acc.transform.c, acc.transform.f
+    corners = [record.transform * c for c in [(0, 0), (w, 0), (w, h), (0, h)]]
+    return np.array([[(x - xmin) / res, (ymax - y) / res] for x, y in corners])
 
 
 def main(argv=None) -> None:
@@ -108,22 +166,36 @@ def main(argv=None) -> None:
     acc = MapAccumulator(records, cfg.class_ids, cfg.feature_nodata)
     id_lookup = np.array(cfg.class_ids, dtype=np.uint8)
 
+    logger.info(f"    building survey backdrop ({len(records)} tiles) ...")
+    backdrop = build_backdrop(records, acc, cfg.bands, stats, band_modes, cfg.feature_nodata)
+
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon as MplPolygon
 
     plt.ion()
-    fig = plt.figure(figsize=(11, 8))
+    fig = plt.figure(figsize=(12, 9))
     fig.canvas.manager.set_window_title(f"seabed_unet — {cfg.name} / {polygon}")
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 1.5])
+    n_top = len(cfg.bands) + 1
+    gs = fig.add_gridspec(2, n_top, height_ratios=[1.0, 2.2])
     panels = {}
-    for i, title in enumerate(["inputs", "model prediction", "ground truth"]):
+    for i, band in enumerate(cfg.bands):
         ax = fig.add_subplot(gs[0, i])
-        ax.set_title(title, fontsize=10)
+        ax.set_title(f"tile · {band}", fontsize=10)
         ax.set_axis_off()
-        panels[title] = ax.imshow(np.zeros((2, 2, 3), dtype=np.uint8))
+        panels[band] = ax.imshow(np.zeros((2, 2, 3), dtype=np.uint8))
+    ax = fig.add_subplot(gs[0, n_top - 1])
+    ax.set_title("tile · classified", fontsize=10)
+    ax.set_axis_off()
+    panels["pred"] = ax.imshow(np.zeros((2, 2, 3), dtype=np.uint8))
+
     ax_map = fig.add_subplot(gs[1, :])
-    ax_map.set_title("classified map (blending in)", fontsize=10)
+    ax_map.set_title(f"{polygon} — classification filling in", fontsize=10)
     ax_map.set_axis_off()
-    map_artist = ax_map.imshow(np.zeros((acc.n_rows, acc.n_cols, 3), dtype=np.uint8))
+    map_artist = ax_map.imshow(backdrop)
+    outline = MplPolygon(
+        np.zeros((4, 2)), closed=True, fill=False, edgecolor="yellow", linewidth=1.8
+    )
+    ax_map.add_patch(outline)
     fig.tight_layout(rect=(0, 0, 1, 0.94))  # leave headroom for the suptitle
     plt.show(block=False)
 
@@ -144,10 +216,11 @@ def main(argv=None) -> None:
             dices.append(dice)
         acc.add(r, probs)
 
-        panels["inputs"].set_data(compose_input_rgb(inputs))
-        panels["model prediction"].set_data(masked_label_rgb(pred_ids, valid))
-        panels["ground truth"].set_data(label_to_rgb(r.label))
-        map_artist.set_data(label_to_rgb(acc.class_map()))
+        for b, band in enumerate(cfg.bands):
+            panels[band].set_data(render_band(inputs[b], valid, band))
+        panels["pred"].set_data(masked_label_rgb(pred_ids, valid))
+        map_artist.set_data(class_overlay(backdrop, acc.class_map()))
+        outline.set_xy(tile_outline_px(r, acc))
         dice_txt = "n/a" if np.isnan(dice) else f"{dice:.2f}"
         fig.suptitle(
             f"tile {i}/{len(records)}  ·  {r.tile_id}  ·  tile Dice {dice_txt}", fontsize=11
@@ -183,6 +256,7 @@ def main(argv=None) -> None:
         logger.info(f"[+] animation -> {gif_path}")
 
     if plt.fignum_exists(fig.number):
+        outline.set_visible(False)
         fig.suptitle(fig._suptitle.get_text() + "   (done — close window to exit)")
         plt.ioff()
         plt.show()
