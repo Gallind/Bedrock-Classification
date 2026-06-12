@@ -36,6 +36,10 @@ export PYTHONPATH=tiling/src:training/src
 # Leave-one-polygon-out cross-validation (4 retrains; the honest cross-survey number)
 .venv-train/bin/python -m seabed_unet.crossval --config training/config/experiment_3band.yaml
 
+# Watch the model classify tiles live (matplotlib window; --save adds an animated GIF)
+.venv-train/bin/python -m seabed_unet.watch --config training/config/experiment_3band.yaml \
+    --polygon polygon4 --delay 0.4 --save
+
 # Tests
 .venv-train/bin/python -m pytest training/tests -q
 ```

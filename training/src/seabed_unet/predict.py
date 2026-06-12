@@ -50,49 +50,96 @@ def _records_extent(records) -> tuple[float, float, float, float, float]:
     return xmin, ymin, xmax, ymax, res
 
 
-def build_class_map(
-    records, model, stats, bands, class_ids, nodata, band_modes, device
-) -> tuple[np.ndarray, object, object]:
-    """(uint8 class-id map, North-up transform, crs) from mask-weighted blended probs."""
-    xmin, ymin, xmax, ymax, res = _records_extent(records)
-    n_cols = int(round((xmax - xmin) / res))
-    n_rows = int(round((ymax - ymin) / res))
-    dst_transform = from_origin(xmin, ymax, res, res)
-    crs = records[0].crs
+def resolve_polygon_stats(cfg, polygon, records, stats, band_modes) -> dict:
+    """Ensure normalization stats exist for ``polygon`` (shared with watch.py).
 
-    num_classes = len(class_ids)
-    prob_sum = np.zeros((num_classes, n_rows, n_cols), dtype=np.float64)
-    weight = np.zeros((n_rows, n_cols), dtype=np.float64)
+    Unseen survey: self-normalize its per-polygon bands from its own features
+    (no labels involved). Global bands keep the saved train-fitted range —
+    out-of-range values clip.
+    """
+    per_poly_bands = [(i, b) for i, b in enumerate(cfg.bands) if band_modes[b] == "per_polygon"]
+    if not per_poly_bands or polygon in stats:
+        return stats
+    arrays = [r.features for r in records]
+    stats = dict(stats)
+    stats[polygon] = {
+        band: compute_band_stats(
+            arrays, i, cfg.feature_nodata, tuple(cfg.normalization.clip_percentiles)
+        )
+        for i, band in per_poly_bands
+    }
+    logger.info(f"    {polygon} not in training stats — self-normalized "
+                f"{[b for _, b in per_poly_bands]}")
+    return stats
 
-    for r in records:
-        inputs = apply_stats(r.features, r.polygon, bands, stats, nodata, band_modes)
-        probs = predict_probs(model, inputs, device)
-        # Mask-weighted contribution: pixels with invalid features carry no vote,
-        # and the mask also kills reproject edge fill (outside-tile -> 0 weight).
-        valid = (
-            np.all(r.features != nodata, axis=0) & ~np.any(np.isnan(r.features), axis=0)
-        ).astype(np.float32)
+
+def feature_valid_mask(features: np.ndarray, nodata: float) -> np.ndarray:
+    """(H, W) bool: True where every feature band has real data."""
+    return np.all(features != nodata, axis=0) & ~np.any(np.isnan(features), axis=0)
+
+
+class MapAccumulator:
+    """Accumulates mask-weighted tile softmax fields into a North-up class map.
+
+    Used in one shot by build_class_map() and incrementally by seabed_unet.watch
+    (call class_map() after any number of add() calls to see the map so far).
+    """
+
+    def __init__(self, records, class_ids: list[int], nodata: float):
+        if not records:
+            raise ValueError("no tile records to accumulate")
+        xmin, ymin, xmax, ymax, res = _records_extent(records)
+        self.n_cols = int(round((xmax - xmin) / res))
+        self.n_rows = int(round((ymax - ymin) / res))
+        self.transform = from_origin(xmin, ymax, res, res)
+        self.crs = records[0].crs
+        self.class_ids = class_ids
+        self.nodata = nodata
+        self._prob_sum = np.zeros((len(class_ids), self.n_rows, self.n_cols), dtype=np.float64)
+        self._weight = np.zeros((self.n_rows, self.n_cols), dtype=np.float64)
+
+    def add(self, record, probs: np.ndarray) -> None:
+        """Blend one tile's (C, H, W) softmax field into the map.
+
+        Mask-weighted contribution: pixels with invalid features carry no vote,
+        and the mask also kills reproject edge fill (outside-tile -> 0 weight).
+        """
+        num_classes = len(self.class_ids)
+        valid = feature_valid_mask(record.features, self.nodata).astype(np.float32)
         src_stack = np.concatenate([probs * valid, valid[np.newaxis]], axis=0)
-        dst_stack = np.zeros((num_classes + 1, n_rows, n_cols), dtype=np.float32)
+        dst_stack = np.zeros((num_classes + 1, self.n_rows, self.n_cols), dtype=np.float32)
         for b in range(num_classes + 1):
             reproject(
                 source=src_stack[b],
                 destination=dst_stack[b],
-                src_transform=r.transform,
-                src_crs=r.crs,
-                dst_transform=dst_transform,
-                dst_crs=crs,
+                src_transform=record.transform,
+                src_crs=record.crs,
+                dst_transform=self.transform,
+                dst_crs=self.crs,
                 resampling=Resampling.bilinear,
             )
-        prob_sum += dst_stack[:num_classes]
-        weight += dst_stack[num_classes]
+        self._prob_sum += dst_stack[:num_classes]
+        self._weight += dst_stack[num_classes]
 
-    covered = weight > 1e-3
-    class_map = np.zeros((n_rows, n_cols), dtype=np.uint8)
-    pred_channel = (prob_sum / np.maximum(weight, 1e-9)).argmax(axis=0)
-    id_lookup = np.array(class_ids, dtype=np.uint8)
-    class_map[covered] = id_lookup[pred_channel[covered]]
-    return class_map, dst_transform, crs
+    def class_map(self) -> np.ndarray:
+        """(H, W) uint8 class-id map of everything accumulated so far (0 = no data)."""
+        covered = self._weight > 1e-3
+        out = np.zeros((self.n_rows, self.n_cols), dtype=np.uint8)
+        pred_channel = (self._prob_sum / np.maximum(self._weight, 1e-9)).argmax(axis=0)
+        id_lookup = np.array(self.class_ids, dtype=np.uint8)
+        out[covered] = id_lookup[pred_channel[covered]]
+        return out
+
+
+def build_class_map(
+    records, model, stats, bands, class_ids, nodata, band_modes, device
+) -> tuple[np.ndarray, object, object]:
+    """(uint8 class-id map, North-up transform, crs) from mask-weighted blended probs."""
+    acc = MapAccumulator(records, class_ids, nodata)
+    for r in records:
+        inputs = apply_stats(r.features, r.polygon, bands, stats, nodata, band_modes)
+        acc.add(r, predict_probs(model, inputs, device))
+    return acc.class_map(), acc.transform, acc.crs
 
 
 def main(argv=None) -> None:
@@ -132,21 +179,7 @@ def main(argv=None) -> None:
 
     stats = load_stats(cfg.run_dir / "normalization_stats.json")
     band_modes = cfg.normalization.modes_for(cfg.bands)
-    per_poly_bands = [(i, b) for i, b in enumerate(cfg.bands) if band_modes[b] == "per_polygon"]
-    if per_poly_bands and polygon not in stats:
-        # Unseen survey: self-normalize its per-polygon bands from its own
-        # features (no labels involved). Global bands keep the saved
-        # train-fitted range — out-of-range values clip.
-        arrays = [r.features for r in records]
-        stats = dict(stats)
-        stats[polygon] = {
-            band: compute_band_stats(
-                arrays, i, cfg.feature_nodata, tuple(cfg.normalization.clip_percentiles)
-            )
-            for i, band in per_poly_bands
-        }
-        logger.info(f"    {polygon} not in training stats — self-normalized "
-              f"{[b for _, b in per_poly_bands]}")
+    stats = resolve_polygon_stats(cfg, polygon, records, stats, band_modes)
 
     class_map, transform, crs = build_class_map(
         records, model, stats, cfg.bands, cfg.class_ids, cfg.feature_nodata,
