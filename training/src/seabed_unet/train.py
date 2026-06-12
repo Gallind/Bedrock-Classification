@@ -223,12 +223,15 @@ def main(argv=None) -> None:
         "--limit", type=int, default=None,
         help="Cap tiles per split (smoke runs only — not a valid experiment).",
     )
+    parser.add_argument("--device", default=None, help="Override train.device (cpu/mps/cuda).")
     args = parser.parse_args(argv)
 
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg = load_config(args.config, base_dir=base)
     if args.epochs is not None:
         cfg.train.epochs = args.epochs
+    if args.device:
+        cfg.train.device = args.device
     run_training(cfg, limit=args.limit)
 
 

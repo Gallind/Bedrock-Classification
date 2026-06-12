@@ -125,10 +125,13 @@ def main(argv=None) -> None:
     parser.add_argument("--base-dir", default=None, help="Repo root (default: cwd).")
     parser.add_argument("--checkpoint", default=None, help="Default: <run_dir>/best.pt")
     parser.add_argument("--split", default="test", choices=["val", "test"])
+    parser.add_argument("--device", default=None, help="Override train.device (cpu/mps/cuda).")
     args = parser.parse_args(argv)
 
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg = load_config(args.config, base_dir=base)
+    if args.device:
+        cfg.train.device = args.device
     evaluate_checkpoint(cfg, split=args.split, checkpoint=args.checkpoint)
 
 

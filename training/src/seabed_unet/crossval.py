@@ -146,6 +146,12 @@ def main(argv=None) -> None:
              "two more run on CPU cores). Default: config (sequential) / cpu (parallel).",
     )
     parser.add_argument("--fold", default=None, help=argparse.SUPPRESS)  # internal
+    parser.add_argument(
+        "--summarize-only", action="store_true",
+        help="Skip training: aggregate existing fold metrics.json files into "
+             "summary.json (used by seabed_unet.run_all after it schedules the "
+             "folds itself).",
+    )
     args = parser.parse_args(argv)
 
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
@@ -174,6 +180,21 @@ def main(argv=None) -> None:
     lopo_dir.mkdir(parents=True, exist_ok=True)
     setup_logging()
     add_file_handler(lopo_dir / "crossval.log")  # whole-sweep log
+
+    if args.summarize_only:
+        fold_reports = {}
+        for fold in folds:
+            test_poly = fold["test"][0]
+            metrics = lopo_dir / f"fold_{test_poly}" / "eval_test" / "metrics.json"
+            if not metrics.exists():
+                raise SystemExit(f"missing {metrics} — fold not trained/evaluated yet")
+            fold_reports[test_poly] = json.loads(metrics.read_text())
+        summary = summarize(fold_reports, class_names)
+        (lopo_dir / "summary.json").write_text(json.dumps(summary, indent=2))
+        print_table(summary)
+        logger.info(f"\n[+] LOPO summary -> {lopo_dir / 'summary.json'}")
+        return
+
     logger.info(f"[+] {lopo_name}: {len(folds)} folds over {polygons} "
                 f"(jobs={args.jobs}, device={args.device or 'config'})")
 

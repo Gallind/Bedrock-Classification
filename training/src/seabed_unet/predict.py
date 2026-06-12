@@ -152,10 +152,13 @@ def main(argv=None) -> None:
         help="Polygon to map (default: first test polygon). May be a polygon "
              "unseen at training time — it self-normalizes in per_polygon mode.",
     )
+    parser.add_argument("--device", default=None, help="Override train.device (cpu/mps/cuda).")
     args = parser.parse_args(argv)
 
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg = load_config(args.config, base_dir=base)
+    if args.device:
+        cfg.train.device = args.device
     setup_logging()
     add_file_handler(cfg.run_dir / "predict.log")
     device = resolve_device(cfg.train.device)
