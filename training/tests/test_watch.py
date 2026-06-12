@@ -8,6 +8,7 @@ from rasterio.transform import from_origin
 from seabed_unet.data import IGNORE_INDEX, TileRecord
 from seabed_unet.predict import MapAccumulator, feature_valid_mask
 from seabed_unet.watch import (
+    build_truth_map,
     build_backdrop,
     class_overlay,
     masked_label_rgb,
@@ -173,3 +174,16 @@ def test_accumulator_incremental_equals_batch():
 
     assert np.array_equal(a.class_map(), b.class_map())
     assert a.transform == b.transform
+
+
+def test_build_truth_map_mosaics_labels_with_gaps():
+    r1 = make_record(x0=600000.0)
+    r2 = make_record(x0=600016.0)  # 8 px gap between tiles
+    r2.label[:] = 3
+    acc = MapAccumulator([r1, r2], CLASS_IDS, NODATA)
+    truth = build_truth_map([r1, r2], acc)
+    assert truth.shape == (acc.n_rows, acc.n_cols)
+    assert (truth[:, :8] == 1).all()       # r1 labels
+    assert (truth[:, 8:16] == 0).all()     # gap stays unlabeled
+    assert (truth[:, 16:] == 3).all()      # r2 labels
+    assert set(np.unique(truth).tolist()) <= {0, 1, 3}  # nearest: no interpolated ids

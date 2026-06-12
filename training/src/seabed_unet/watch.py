@@ -100,6 +100,27 @@ def build_backdrop(
     return np.repeat(gray[..., np.newaxis], 3, axis=2)
 
 
+def build_truth_map(records, acc: MapAccumulator) -> np.ndarray:
+    """(H, W) uint8 ground-truth class map mosaicked onto the same grid.
+
+    Nearest resampling only — class ids must never interpolate. Overlapping
+    tiles carry identical labels (cut from one master grid), so last-wins is
+    safe; uncovered pixels stay 0 (unlabeled).
+    """
+    truth = np.zeros((acc.n_rows, acc.n_cols), dtype=np.uint8)
+    for r in records:
+        dst = np.zeros((acc.n_rows, acc.n_cols), dtype=np.float32)
+        reproject(
+            source=r.label.astype(np.float32), destination=dst,
+            src_transform=r.transform, src_crs=r.crs,
+            dst_transform=acc.transform, dst_crs=acc.crs,
+            resampling=Resampling.nearest,
+        )
+        labeled = dst > 0
+        truth[labeled] = dst[labeled].astype(np.uint8)
+    return truth
+
+
 def class_overlay(
     backdrop: np.ndarray, class_map: np.ndarray, alpha: float = OVERLAY_ALPHA
 ) -> np.ndarray:
@@ -166,36 +187,45 @@ def main(argv=None) -> None:
     acc = MapAccumulator(records, cfg.class_ids, cfg.feature_nodata)
     id_lookup = np.array(cfg.class_ids, dtype=np.uint8)
 
-    logger.info(f"    building survey backdrop ({len(records)} tiles) ...")
+    logger.info(f"    building survey backdrop + truth map ({len(records)} tiles) ...")
     backdrop = build_backdrop(records, acc, cfg.bands, stats, band_modes, cfg.feature_nodata)
+    truth_rgb = class_overlay(backdrop, build_truth_map(records, acc))
 
     import matplotlib.pyplot as plt
     from matplotlib.patches import Polygon as MplPolygon
 
     plt.ion()
-    fig = plt.figure(figsize=(12, 9))
+    fig = plt.figure(figsize=(14, 9))
     fig.canvas.manager.set_window_title(f"seabed_unet — {cfg.name} / {polygon}")
     n_top = len(cfg.bands) + 1
-    gs = fig.add_gridspec(2, n_top, height_ratios=[1.0, 2.2])
+    outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 2.2])
+    gs_top = outer[0].subgridspec(1, n_top)
+    gs_bottom = outer[1].subgridspec(1, 2)
     panels = {}
     for i, band in enumerate(cfg.bands):
-        ax = fig.add_subplot(gs[0, i])
+        ax = fig.add_subplot(gs_top[0, i])
         ax.set_title(f"tile · {band}", fontsize=10)
         ax.set_axis_off()
         panels[band] = ax.imshow(np.zeros((2, 2, 3), dtype=np.uint8))
-    ax = fig.add_subplot(gs[0, n_top - 1])
+    ax = fig.add_subplot(gs_top[0, n_top - 1])
     ax.set_title("tile · classified", fontsize=10)
     ax.set_axis_off()
     panels["pred"] = ax.imshow(np.zeros((2, 2, 3), dtype=np.uint8))
 
-    ax_map = fig.add_subplot(gs[1, :])
-    ax_map.set_title(f"{polygon} — classification filling in", fontsize=10)
+    ax_map = fig.add_subplot(gs_bottom[0, 0])
+    ax_map.set_title(f"{polygon} — model (filling in)", fontsize=10)
     ax_map.set_axis_off()
     map_artist = ax_map.imshow(backdrop)
     outline = MplPolygon(
         np.zeros((4, 2)), closed=True, fill=False, edgecolor="yellow", linewidth=1.8
     )
     ax_map.add_patch(outline)
+
+    ax_truth = fig.add_subplot(gs_bottom[0, 1])
+    ax_truth.set_title(f"{polygon} — ground truth", fontsize=10)
+    ax_truth.set_axis_off()
+    ax_truth.imshow(truth_rgb)
+
     fig.tight_layout(rect=(0, 0, 1, 0.94))  # leave headroom for the suptitle
     plt.show(block=False)
 
