@@ -74,7 +74,7 @@ Then check tile counts (rows in each `manifest.csv`, header excluded):
 | Polygon | standard | `_rot` | `_rotaug` |
 |---|---|---|---|
 | polygon1 | 190 | 154 | 574 |
-| polygon3 | 65 | 58 | 227 |
+| polygon3 | 66 | 60 | 230 |
 | polygon4 | 29 | 26 | 59 |
 | polygon5 | 31 | 12 | 46 |
 
