@@ -122,3 +122,31 @@ def test_evaluate_run_writes_metrics_and_comparison(tmp_path):
     assert (run_dir / "comparison.csv").exists()
     assert (run_dir / "comparison.md").exists()
     assert set(reports) == set(forest.models)
+
+
+from seabed_forest.predict import majority_filter, predict_polygon_map
+
+
+def test_majority_filter_smooths_singletons():
+    import numpy as np
+    cmap = np.ones((5, 5), np.uint8)
+    cmap[2, 2] = 3                      # lone class-3 pixel in a sea of class 1
+    out = majority_filter(cmap, 3, class_ids=[1, 2, 3])
+    assert out[2, 2] == 1              # majority wins
+    assert out.shape == cmap.shape
+
+
+def test_predict_polygon_map_writes_outputs(tmp_path):
+    import rasterio
+    _build_synth(tmp_path)
+    exp = _write_forest_yaml(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    train_run(cfg, forest)
+    paths = predict_polygon_map(cfg, forest, polygon="polygon4")
+    run_dir = tmp_path / "runs" / "forest_smoke"
+    for kind in forest.models:
+        tif = run_dir / "maps" / f"polygon4_pred_{kind}.tif"
+        assert tif in paths and tif.exists()
+        with rasterio.open(tif) as src:
+            assert src.count == 1 and src.dtypes[0] == "uint8"
+        assert (run_dir / "maps" / f"polygon4_pred_{kind}.jpg").exists()
