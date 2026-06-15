@@ -152,6 +152,52 @@ def test_predict_polygon_map_writes_outputs(tmp_path):
         assert (run_dir / "maps" / f"polygon4_pred_{kind}.jpg").exists()
 
 
+from seabed_forest.predict import PosteriorMapAccumulator, predict_polygon_map
+
+
+def _accum_record(polygon, origin, fill, label_val):
+    from rasterio.transform import from_origin
+    from seabed_unet.data import TileRecord
+    feats = np.full((3, 6, 6), fill, np.float32)
+    label = np.full((6, 6), label_val, np.uint8)
+    return TileRecord(tile_id="t", polygon=polygon, augmented=False, features=feats,
+                      label=label, transform=from_origin(origin[0], origin[1], 1.0, 1.0),
+                      crs="EPSG:32636", center_x=origin[0], center_y=origin[1], theta_deg=0.0)
+
+
+def test_posterior_accumulator_exposes_normalized_field():
+    recs = [_accum_record("polygon1", (600000.0, 3600000.0), 5.0, 1)]
+    acc = PosteriorMapAccumulator(recs, class_ids=[1, 2, 3], nodata=-9999.0)
+    C = 3
+    for r in recs:
+        probs = np.full((C, 6, 6), 1.0 / 3.0, np.float32)  # uniform posterior
+        guide = np.full((6, 6), 0.7, np.float32)
+        acc.add(r, probs, guide)
+    prob, guide_map, covered = acc.posterior()
+    assert prob.shape == (C, acc.n_rows, acc.n_cols)
+    assert guide_map.shape == (acc.n_rows, acc.n_cols)
+    assert covered.shape == (acc.n_rows, acc.n_cols)
+    # covered pixels: prob columns sum ~1 and guide ~0.7
+    assert np.allclose(prob[:, covered].sum(axis=0), 1.0, atol=1e-4)
+    assert np.allclose(guide_map[covered], 0.7, atol=1e-3)
+
+
+def test_predict_spatial_writes_outputs(tmp_path):
+    import rasterio
+    _build_synth(tmp_path)
+    exp = _write_forest_yaml(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    train_run(cfg, forest)
+    paths = predict_polygon_map(cfg, forest, polygon="polygon4", spatial=True)
+    run_dir = tmp_path / "runs" / "forest_smoke"
+    for kind in forest.models:
+        tif = run_dir / "maps" / f"polygon4_pred_{kind}_spatial.tif"
+        assert tif in paths and tif.exists()
+        with rasterio.open(tif) as src:
+            assert src.count == 1 and src.dtypes[0] == "uint8"
+        assert (run_dir / "maps" / f"polygon4_pred_{kind}_spatial.jpg").exists()
+
+
 from seabed_forest.crossval import run_lopo
 
 
