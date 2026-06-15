@@ -67,3 +67,28 @@ def test_subsample_caps_per_class():
     counts = np.bincount(y, minlength=3)
     assert counts[0] <= 20 and counts[2] <= 20   # channel 0 (class1) and channel 2 (class3)
     assert counts[0] == 20 and counts[2] == 20
+
+
+def test_empty_records_returns_correct_shapes():
+    X, y, coords = build_pixel_table([], BANDS, CLASS_IDS, {}, NODATA, IGNORE_LABEL, MODES)
+    assert X.shape == (0, 3)
+    assert y.shape == (0,)
+    assert coords.shape == (0, 2)
+    assert X.dtype == np.float32 and y.dtype == np.int64
+
+
+def test_world_coords_handles_rotated_transform():
+    from affine import Affine
+    # A pure 90-degree rotation + translation: pixel center (col=0,row=0) -> (cx,cy).
+    # Affine(a,b,c,d,e,f): x = a*col + b*row + c ; y = d*col + e*row + f.
+    # Use a=0,b=1,c=600000 ; d=1,e=0,f=3600000 so center (0.5,0.5) -> (600000.5, 3600000.5).
+    transform = Affine(0.0, 1.0, 600000.0, 1.0, 0.0, 3600000.0)
+    feats = np.full((3, 2, 2), 5.0, dtype=np.float32)
+    label = np.full((2, 2), 1, dtype=np.uint8)
+    rec = TileRecord(
+        tile_id="t", polygon="polygon1", augmented=False, features=feats, label=label,
+        transform=transform, crs="EPSG:32636", center_x=600000.0, center_y=3600000.0, theta_deg=45.0,
+    )
+    _, _, coords = build_pixel_table([rec], BANDS, CLASS_IDS, _stats([rec]), NODATA, IGNORE_LABEL, MODES)
+    # pixel (col=0,row=0): center (0.5,0.5) -> x = 1*0.5 + 600000 = 600000.5 ; y = 1*0.5 + 3600000 = 3600000.5
+    assert np.any(np.all(np.isclose(coords, [600000.5, 3600000.5]), axis=1))

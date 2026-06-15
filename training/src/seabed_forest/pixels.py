@@ -52,7 +52,7 @@ def build_pixel_table(
         if not valid.any():
             continue
         rows, cols = np.nonzero(valid)
-        xs.append(norm[:, rows, cols].T.astype(np.float32))   # (n, B)
+        xs.append(norm[:, rows, cols].T.astype(np.float32, copy=False))   # (n, B)
         ys.append(target[rows, cols].astype(np.int64))         # (n,)
         cs.append(_world_coords(r.transform, rows, cols))      # (n, 2)
 
@@ -67,8 +67,9 @@ def build_pixel_table(
 
     if dedup:
         keys = np.floor(coords / round_m).astype(np.int64)
+        # np.unique keeps the FIRST occurrence per 1 m cell (first tile wins on overlap)
         _, keep = np.unique(keys, axis=0, return_index=True)
-        keep.sort()
+        keep.sort()  # restore original row order
         X, y, coords = X[keep], y[keep], coords[keep]
 
     if max_pixels_per_class is not None:
