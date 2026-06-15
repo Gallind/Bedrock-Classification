@@ -40,6 +40,9 @@ def test_mask_aware_ignores_uncovered_pixels():
     out = guided_filter(guide, src, radius=2, eps=1e-3, mask=mask)
     # covered pixels far from the garbage stay ~0.5, not pulled toward 1000
     assert abs(out[6, 5] - 0.5) < 0.1
+    # row 2: its radius-2 window straddles the uncovered garbage rows (0-1),
+    # so this is the real test that mask-aware box means exclude them.
+    assert abs(out[2, 5] - 0.5) < 0.1
     assert np.isfinite(out).all()
 
 
