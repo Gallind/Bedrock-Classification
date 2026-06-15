@@ -22,6 +22,7 @@ from seabed_unet.crossval import FOLD_ORDER, fold_config, lopo_folds, print_tabl
 from seabed_unet.logging_utils import add_file_handler, remove_handler, setup_logging
 
 from .config import ForestConfig, load_forest_config
+from .eval_spatial import evaluate_spatial
 from .evaluate import evaluate_run
 from .train import train_run
 
@@ -43,6 +44,10 @@ def run_lopo(cfg: Config, forest: ForestConfig, limit: int | None = None) -> dic
     try:
         # {kind: {test_polygon: metrics_report}}
         per_kind: dict[str, dict[str, dict]] = {kind: {} for kind in forest.models}
+        spatial_enabled = forest.spatial.enabled
+        if spatial_enabled:
+            per_kind_raw: dict[str, dict[str, dict]] = {kind: {} for kind in forest.models}
+            per_kind_spatial: dict[str, dict[str, dict]] = {kind: {} for kind in forest.models}
         for fold in folds:
             test_poly = fold["test"][0]
             logger.info(f"\n[+] ===== fold test={test_poly} val={fold['val'][0]} "
@@ -52,6 +57,11 @@ def run_lopo(cfg: Config, forest: ForestConfig, limit: int | None = None) -> dic
             reports = evaluate_run(fcfg, forest, split="test")
             for kind, report in reports.items():
                 per_kind[kind][test_poly] = report
+            if spatial_enabled:
+                spatial_reports = evaluate_spatial(fcfg, forest, split="test")
+                for kind in forest.models:
+                    per_kind_raw[kind][test_poly] = spatial_reports[f"{kind}_map_raw"]
+                    per_kind_spatial[kind][test_poly] = spatial_reports[f"{kind}_map_spatial"]
 
         summaries: dict[str, dict] = {}
         for kind, fold_reports in per_kind.items():
@@ -60,6 +70,15 @@ def run_lopo(cfg: Config, forest: ForestConfig, limit: int | None = None) -> dic
             summaries[kind] = summary
             logger.info(f"\n[+] LOPO summary — {kind}")
             print_table(summary)
+        if spatial_enabled:
+            for kind in forest.models:
+                raw_summary = summarize(per_kind_raw[kind], class_names)
+                spatial_summary = summarize(per_kind_spatial[kind], class_names)
+                combined = {"map_raw": raw_summary, "map_spatial": spatial_summary}
+                (lopo_dir / f"spatial_summary_{kind}.json").write_text(json.dumps(combined, indent=2))
+                logger.info(f"\n[+] LOPO spatial summary — {kind} "
+                            f"(raw mDice {raw_summary['macro_dice']['mean']:.3f} -> "
+                            f"spatial {spatial_summary['macro_dice']['mean']:.3f})")
         logger.info(f"\n[+] LOPO summaries -> {lopo_dir}")
         return summaries
     finally:

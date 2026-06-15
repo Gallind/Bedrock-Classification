@@ -253,3 +253,39 @@ def test_run_lopo_writes_summary(tmp_path):
     s = summaries["random_forest"]
     assert "macro_dice" in s and "mean" in s["macro_dice"]
     assert set(s["macro_dice"]["per_fold"]) == {"polygon1", "polygon3", "polygon4"}
+
+
+def _write_blocks_spatial_yaml(tmp_path):
+    (tmp_path / "default.yaml").write_text(yaml.safe_dump({
+        "outputs_dir": "outputs", "run_tag": "t128m_o50pct_r1m",
+        "classes": {"rock": 1, "shallow_rock": 2, "sand": 3},
+        "feature_nodata": -9999.0, "ignore_label": 0,
+        "split": {"mode": "spatial_blocks",
+                  "polygons": ["polygon1", "polygon3", "polygon4"],
+                  "use_augmented_for_train": False},
+        "normalization": {"default_mode": "per_polygon",
+                          "band_modes": {"bathymetry": "global", "slope": "global"}},
+        "runs_dir": "runs",
+    }))
+    exp = tmp_path / "forest_spatial.yaml"
+    exp.write_text(yaml.safe_dump({
+        "name": "forest_lopo_spatial", "bands": ["backscatter", "bathymetry", "slope"],
+        "forest": {"models": ["random_forest"], "spatial": {"enabled": True, "radius": 2}},
+    }))
+    return exp
+
+
+def test_run_lopo_spatial_summary(tmp_path):
+    _build_synth(tmp_path)
+    exp = _write_blocks_spatial_yaml(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    summaries = run_lopo(cfg, forest)
+    lopo_dir = tmp_path / "runs" / "forest_lopo_spatial_lopo"
+    # flat per-pixel summary still written
+    assert (lopo_dir / "summary_random_forest.json").exists()
+    # spatial summary written with both variants + per-fold polygon keys
+    sp = lopo_dir / "spatial_summary_random_forest.json"
+    assert sp.exists()
+    data = json.loads(sp.read_text())
+    assert "map_raw" in data and "map_spatial" in data
+    assert set(data["map_spatial"]["macro_dice"]["per_fold"]) == {"polygon1", "polygon3", "polygon4"}
