@@ -198,6 +198,28 @@ def test_predict_spatial_writes_outputs(tmp_path):
         assert (run_dir / "maps" / f"polygon4_pred_{kind}_spatial.jpg").exists()
 
 
+from seabed_forest.eval_spatial import evaluate_spatial
+
+
+def test_evaluate_spatial_writes_comparison(tmp_path):
+    _build_synth(tmp_path)
+    exp = _write_forest_yaml(tmp_path)          # polygon mode: train p1 / val p3 / test p4
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    train_run(cfg, forest)
+    reports = evaluate_spatial(cfg, forest, split="test")
+
+    run_dir = tmp_path / "runs" / "forest_smoke"
+    assert (run_dir / "spatial_comparison.csv").exists()
+    assert (run_dir / "spatial_comparison.md").exists()
+    for kind in forest.models:
+        assert f"{kind}_map_raw" in reports
+        assert f"{kind}_map_spatial" in reports
+        for variant in (f"{kind}_map_raw", f"{kind}_map_spatial"):
+            rep = reports[variant]
+            assert "macro_dice" in rep and set(rep["per_class"]) == {"rock", "shallow_rock", "sand"}
+            assert np.isfinite(rep["macro_dice"])
+
+
 from seabed_forest.crossval import run_lopo
 
 
