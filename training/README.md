@@ -197,7 +197,16 @@ export PYTHONPATH=tiling/src:training/src
 .venv-train/bin/python -m seabed_forest.evaluate --config training/config/forest_3band.yaml
 .venv-train/bin/python -m seabed_forest.predict  --config training/config/forest_3band.yaml --polygon polygon4
 .venv-train/bin/python -m seabed_forest.crossval --config training/config/forest_3band.yaml
+# live viewer: watch RF + HGB classify a polygon tile by tile, raw vs spatial side by side
+.venv-train/bin/python -m seabed_forest.watch    --config training/config/forest_3band.yaml --polygon polygon4
 ```
+
+`seabed_forest.watch` mirrors `seabed_unet.watch` for the tree models: top row = the current
+tile's bands + each model's tile classification; bottom row = a full-polygon map per
+(model × {raw, spatial}) plus ground truth, filling in live. Flags: `--models` (subset, default
+both), `--no-spatial` (drop the spatial columns), `--delay` (seconds/tile), `--save` (half-res
+GIF → `runs/<name>/maps/<polygon>_watch_forest.gif`). Run it in a desktop terminal (needs a GUI
+backend, not `Agg`); startup loads the ~3 GB RF model, so the window takes a few seconds.
 
 Outputs land in `training/runs/<name>/`: `model_<kind>.joblib`, `normalization_stats.json`,
 `metrics_<kind>.json`, `feature_importance_<kind>.{csv,png}`, `comparison.{csv,md}`
