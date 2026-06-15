@@ -197,16 +197,21 @@ export PYTHONPATH=tiling/src:training/src
 .venv-train/bin/python -m seabed_forest.evaluate --config training/config/forest_3band.yaml
 .venv-train/bin/python -m seabed_forest.predict  --config training/config/forest_3band.yaml --polygon polygon4
 .venv-train/bin/python -m seabed_forest.crossval --config training/config/forest_3band.yaml
-# live viewer: watch RF + HGB classify a polygon tile by tile, raw vs spatial side by side
+# live multi-model viewer: RF + HGB (raw vs spatial) AND the U-Net, all tile by tile
 .venv-train/bin/python -m seabed_forest.watch    --config training/config/forest_3band.yaml --polygon polygon4
 ```
 
-`seabed_forest.watch` mirrors `seabed_unet.watch` for the tree models: top row = the current
-tile's bands + each model's tile classification; bottom row = a full-polygon map per
-(model × {raw, spatial}) plus ground truth, filling in live. Flags: `--models` (subset, default
-both), `--no-spatial` (drop the spatial columns), `--delay` (seconds/tile), `--save` (half-res
-GIF → `runs/<name>/maps/<polygon>_watch_forest.gif`). Run it in a desktop terminal (needs a GUI
-backend, not `Agg`); startup loads the ~3 GB RF model, so the window takes a few seconds.
+`seabed_forest.watch` is a multi-model live viewer. Each model is a "family" that normalizes
+with its OWN stats: RF/HGB use the forest run's stats, the U-Net uses its own checkpoint +
+stats (`runs/unet_3band`). Top row = the current tile's bands + each family's tile
+classification; bottom grid (wrapped to ≤3 columns) = a full-polygon map per
+(family × {raw, spatial}) plus ground truth, filling in live — five maps by default
+(RF raw, RF spatial, HGB raw, HGB spatial, U-Net) + truth. Flags: `--models` (subset the
+tree kinds), `--no-spatial` (drop the tree spatial columns), `--unet-config` (default
+`experiment_3band.yaml`), `--no-unet` (trees only), `--delay` (seconds/tile), `--save`
+(half-res GIF → `runs/<name>/maps/<polygon>_watch_multi.gif`). Run it in a desktop terminal
+(needs a GUI backend, not `Agg`); startup loads the ~3 GB RF model + the U-Net checkpoint, so
+the window takes a few seconds. The U-Net is 4-survey, so on polygon6 it self-normalizes.
 
 Outputs land in `training/runs/<name>/`: `model_<kind>.joblib`, `normalization_stats.json`,
 `metrics_<kind>.json`, `feature_importance_<kind>.{csv,png}`, `comparison.{csv,md}`
