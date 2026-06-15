@@ -19,7 +19,6 @@ import argparse
 import logging
 import time
 from dataclasses import dataclass
-from math import ceil
 from pathlib import Path
 from typing import Callable
 
@@ -159,7 +158,12 @@ def run_watch(cfg, forest, polygon, kinds, spatial=True, unet_cfg=None,
 
 def _watch_families(families, records, cfg, forest, stats, band_modes,
                     polygon, delay, save, block) -> list:
-    """Generalized figure + per-tile loop over heterogeneous model families."""
+    """Generalized figure + per-tile loop over heterogeneous model families.
+
+    Layout: top row = input bands + each family's tile classification. Bottom = one
+    COLUMN per family (raw on top, guided-spatial below when supported); ground truth
+    takes the last family's free bottom slot (e.g. under the U-Net) or its own column.
+    """
     grid_acc = families[0].acc
     id_lookup = np.array(cfg.class_ids, dtype=np.uint8)
     radius, eps = forest.spatial.radius, forest.spatial.eps
@@ -168,26 +172,33 @@ def _watch_families(families, records, cfg, forest, stats, band_modes,
     backdrop = build_backdrop(records, grid_acc, cfg.bands, stats, band_modes, cfg.feature_nodata)
     truth_rgb = class_overlay(backdrop, build_truth_map(records, grid_acc))
 
-    map_specs = []  # (family, variant)
-    for fam in families:
-        map_specs.append((fam, "raw"))
+    # column-major: column c == family c (raw on row 0, spatial on row 1)
+    has_spatial = any(f.supports_spatial for f in families)
+    n_rows = 2 if has_spatial else 1
+    n_cols = len(families)
+    placements: dict[tuple[int, int], tuple[str, str]] = {}
+    for c, fam in enumerate(families):
+        placements[(0, c)] = (fam.label, "raw")
         if fam.supports_spatial:
-            map_specs.append((fam, "spatial"))
-    n_maps = len(map_specs) + 1  # + ground truth
+            placements[(1, c)] = (fam.label, "spatial")
+    if n_rows == 2 and (1, n_cols - 1) not in placements:
+        truth_rc = (1, n_cols - 1)            # under the U-Net (its column has no spatial row)
+    else:
+        truth_rc = (0, n_cols)                # no free slot -> ground truth gets its own column
+        n_cols += 1
 
     import matplotlib.pyplot as plt
     from matplotlib.patches import Polygon as MplPolygon
 
     plt.ion()
     n_top = len(cfg.bands) + len(families)
-    bottom_cols = min(n_maps, 3)
-    bottom_rows = ceil(n_maps / bottom_cols)
-    fig = plt.figure(figsize=(max(14, 3 * max(n_top, bottom_cols)), 4 + 3 * bottom_rows))
+    fig = plt.figure(figsize=(3.2 * max(n_top, n_cols), 3.4 * (1 + n_rows)),
+                     constrained_layout=True)
     if fig.canvas.manager is not None:
         fig.canvas.manager.set_window_title(f"seabed multi-model — {cfg.name} / {polygon}")
-    outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.2 * bottom_rows])
+    outer = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.15 * n_rows])
     gs_top = outer[0].subgridspec(1, n_top)
-    gs_bottom = outer[1].subgridspec(bottom_rows, bottom_cols)
+    gs_bottom = outer[1].subgridspec(n_rows, n_cols)
 
     band_panels = {}
     for i, band in enumerate(cfg.bands):
@@ -204,21 +215,19 @@ def _watch_families(families, records, cfg, forest, stats, band_modes,
 
     map_artists = {}
     outlines = []
-    for idx, (fam, variant) in enumerate(map_specs):
-        ax = fig.add_subplot(gs_bottom[idx // bottom_cols, idx % bottom_cols])
-        ax.set_title(f"{fam.label} · {variant}", fontsize=9)
+    for (rr, cc), key in placements.items():
+        ax = fig.add_subplot(gs_bottom[rr, cc])
+        ax.set_title(f"{key[0]} · {key[1]}", fontsize=9)
         ax.set_axis_off()
-        map_artists[(fam.label, variant)] = ax.imshow(backdrop)
+        map_artists[key] = ax.imshow(backdrop)
         ol = MplPolygon(np.zeros((4, 2)), closed=True, fill=False, edgecolor="yellow", linewidth=1.6)
         ax.add_patch(ol)
         outlines.append(ol)
-    t_idx = len(map_specs)
-    ax_truth = fig.add_subplot(gs_bottom[t_idx // bottom_cols, t_idx % bottom_cols])
+    ax_truth = fig.add_subplot(gs_bottom[truth_rc[0], truth_rc[1]])
     ax_truth.set_title(f"{polygon} · ground truth", fontsize=9)
     ax_truth.set_axis_off()
     ax_truth.imshow(truth_rgb)
 
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
     plt.show(block=False)
 
     frames: list = []
