@@ -7,6 +7,7 @@ import yaml
 
 from conftest import make_run_dir, write_tile_pair  # noqa: F401  (fixtures dir on sys.path)
 from seabed_forest.config import load_forest_config
+from seabed_forest.evaluate import evaluate_run
 from seabed_forest.train import train_run
 
 
@@ -102,3 +103,22 @@ def test_rotaug_tiles_excluded_from_training(tmp_path):
     # One 8x8 tile, 8 background pixels (top row=0) masked out -> 56 valid pixels.
     # dedup is off, so no further reduction. If the aug tile leaked in, this would be ~112.
     assert summary["n_train_pixels"] == 56
+
+
+def test_evaluate_run_writes_metrics_and_comparison(tmp_path):
+    _build_synth(tmp_path)
+    exp = _write_forest_yaml(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    train_run(cfg, forest)
+    reports = evaluate_run(cfg, forest, split="test")
+
+    run_dir = tmp_path / "runs" / "forest_smoke"
+    for kind in forest.models:
+        mpath = run_dir / f"metrics_{kind}.json"
+        assert mpath.exists()
+        report = json.loads(mpath.read_text())
+        assert "macro_dice" in report and "per_class" in report
+        assert set(report["per_class"]) == {"rock", "shallow_rock", "sand"}
+    assert (run_dir / "comparison.csv").exists()
+    assert (run_dir / "comparison.md").exists()
+    assert set(reports) == set(forest.models)
