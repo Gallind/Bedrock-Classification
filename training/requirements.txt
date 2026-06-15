@@ -12,3 +12,5 @@ pydantic>=2
 matplotlib
 Pillow
 pytest
+scikit-learn     # seabed_forest per-pixel tree baseline (RF + HistGradientBoosting)
+scipy            # majority filter for prediction-map smoothing
