@@ -42,9 +42,13 @@ def fit_estimator(estimator, kind: str, X: np.ndarray, y: np.ndarray):
     """Fit; HGB gets balanced sample weights (it has no class_weight param)."""
     if kind == "hist_gradient_boosting":
         sw = compute_sample_weight("balanced", y)
+        # early_stopping (if enabled) evaluates on an unweighted internal split;
+        # sample_weight only affects gradient computation, not the stopping criterion.
         estimator.fit(X, y, sample_weight=sw)
-    else:
+    elif kind == "random_forest":
         estimator.fit(X, y)
+    else:
+        raise ValueError(f"unknown estimator kind {kind!r}")
     return estimator
 
 
@@ -65,14 +69,16 @@ def feature_importance(
     subsample (permutation is model-agnostic but O(n_features * n_samples))."""
     if kind == "random_forest":
         values = np.asarray(estimator.feature_importances_, dtype=float)
-    else:
+    elif kind == "hist_gradient_boosting":
         rng = np.random.default_rng(seed)
         idx = (rng.choice(X.shape[0], size=sample, replace=False)
                if X.shape[0] > sample else np.arange(X.shape[0]))
         result = permutation_importance(
-            estimator, X[idx], y[idx], n_repeats=5, random_state=seed, n_jobs=-1,
+            estimator, X[idx], y[idx], n_repeats=5, random_state=seed, n_jobs=1,
         )
         values = np.asarray(result.importances_mean, dtype=float)
+    else:
+        raise ValueError(f"unknown estimator kind {kind!r}")
     return {band: float(v) for band, v in zip(bands, values)}
 
 
