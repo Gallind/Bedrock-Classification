@@ -1,4 +1,4 @@
-"""seabed_forest.watch: headless smoke of the live RF/HGB raw-vs-spatial viewer."""
+"""seabed_forest.watch: headless smoke of the multi-model live viewer."""
 
 import numpy as np
 import yaml
@@ -42,7 +42,7 @@ def _setup(tmp_path):
     return exp
 
 
-def test_run_watch_headless_both_models_spatial(tmp_path):
+def test_run_watch_trees_only_spatial(tmp_path):
     import matplotlib
     matplotlib.use("Agg")
     exp = _setup(tmp_path)
@@ -50,13 +50,12 @@ def test_run_watch_headless_both_models_spatial(tmp_path):
     train_run(cfg, forest)
     from seabed_forest.watch import run_watch
     frames = run_watch(cfg, forest, polygon="polygon4", kinds=list(forest.models),
-                       spatial=True, delay=0.0, save=True, max_tiles=2, block=False)
+                       spatial=True, unet_cfg=None, delay=0.0, save=True, max_tiles=2, block=False)
     assert isinstance(frames, list) and len(frames) >= 1
-    # GIF written next to the run's maps
-    assert (tmp_path / "runs" / "forest_smoke" / "maps" / "polygon4_watch_forest.gif").exists()
+    assert (tmp_path / "runs" / "forest_smoke" / "maps" / "polygon4_watch_multi.gif").exists()
 
 
-def test_run_watch_headless_no_spatial_single_model(tmp_path):
+def test_run_watch_no_spatial_single_model(tmp_path):
     import matplotlib
     matplotlib.use("Agg")
     exp = _setup(tmp_path)
@@ -64,5 +63,43 @@ def test_run_watch_headless_no_spatial_single_model(tmp_path):
     train_run(cfg, forest)
     from seabed_forest.watch import run_watch
     frames = run_watch(cfg, forest, polygon="polygon4", kinds=["random_forest"],
-                       spatial=False, delay=0.0, save=False, max_tiles=2, block=False)
-    assert frames == []   # save=False -> no frames captured
+                       spatial=False, unet_cfg=None, delay=0.0, save=False, max_tiles=2, block=False)
+    assert frames == []
+
+
+def test_watch_families_heterogeneous_with_stub(tmp_path):
+    """Exercise the generalized loop + 2-row layout with a stub non-spatial family
+    standing in for the U-Net (no torch needed)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    from seabed_forest.watch import ModelFamily, _watch_families, build_tree_families
+    from seabed_forest.predict import PosteriorMapAccumulator
+    from seabed_unet.data import load_run_records
+    from seabed_unet.normalize import load_stats
+    from seabed_unet.predict import resolve_polygon_stats
+
+    exp = _setup(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    train_run(cfg, forest)
+    band_modes = cfg.normalization.modes_for(cfg.bands)
+    recs = load_run_records(cfg.rot_dir("polygon4"), "polygon4", cfg.bands, cfg.base_dir, augmented=False)
+    stats = resolve_polygon_stats(
+        cfg, "polygon4", recs, load_stats(cfg.run_dir / "normalization_stats.json"), band_modes
+    )
+    families = build_tree_families(cfg, forest, list(forest.models), True, recs, stats)
+
+    C = cfg.num_classes
+
+    def stub_fields(r):
+        return np.full((C,) + r.label.shape, 1.0 / C, dtype=np.float64), None
+
+    families.append(ModelFamily(
+        label="STUB",
+        acc=PosteriorMapAccumulator(recs, cfg.class_ids, cfg.feature_nodata),
+        tile_fields=stub_fields,
+        supports_spatial=False,
+    ))
+    # 5 model maps (RF raw/spatial, HGB raw/spatial, STUB) + truth = 6 -> 3 cols x 2 rows
+    frames = _watch_families(families, recs, cfg, forest, stats, band_modes,
+                             polygon="polygon4", delay=0.0, save=True, block=False)
+    assert isinstance(frames, list) and len(frames) >= 1
