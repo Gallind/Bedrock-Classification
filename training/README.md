@@ -182,6 +182,30 @@ Artifacts: `training/runs/<exp>/eval_test/` (blocks), `training/runs/<exp>_lopo/
 Next probes: hillshade 4th band, D4 test-time augmentation + E3/E4 ensemble
 (inverse_op exists in `seabed_tiler.augment`), RF per-pixel baseline.
 
+## Per-pixel tree baseline (`seabed_forest`)
+
+A scikit-learn per-pixel classifier (Random Forest + HistGradientBoosting) on the same
+3 bands as the U-Net, for an interpretable, data-efficient comparison. CPU-only; runs in
+`.venv-train`. Each valid pixel is one `(backscatter, bathymetry, slope)` sample; invalid
+pixels (background + feature-nodata/NaN) are masked, and train pixels are deduped to undo
+the 50% tile overlap. Trains on base `_rot` tiles only — augmentation is a no-op for a
+context-free per-pixel model. Includes polygon6, so it trains on five surveys.
+
+```bash
+export PYTHONPATH=tiling/src:training/src
+.venv-train/bin/python -m seabed_forest.train    --config training/config/forest_3band.yaml
+.venv-train/bin/python -m seabed_forest.evaluate --config training/config/forest_3band.yaml
+.venv-train/bin/python -m seabed_forest.predict  --config training/config/forest_3band.yaml --polygon polygon4
+.venv-train/bin/python -m seabed_forest.crossval --config training/config/forest_3band.yaml
+```
+
+Outputs land in `training/runs/<name>/`: `model_<kind>.joblib`, `normalization_stats.json`,
+`metrics_<kind>.json`, `feature_importance_<kind>.{csv,png}`, `comparison.{csv,md}`
+(RF vs HGB vs an indicative U-Net reference row), and `maps/<polygon>_pred_<kind>.{tif,jpg}`.
+LOPO summaries go to `training/runs/<name>_lopo/summary_<kind>.json`. Because the forest
+trains on five surveys while the U-Net numbers above are on four, the U-Net reference row is
+indicative, not a strict head-to-head.
+
 ## Honest expectations
 
 The labeled area (~1–2 km² across four surveys) is two orders of magnitude smaller

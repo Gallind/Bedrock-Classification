@@ -81,6 +81,10 @@ splits only; `_rotaug` + D4 augmentation are train-only; loss/metrics ignore bac
 (label 0) and feature-invalid pixels; per-polygon self-normalization bridges the
 backscatter domain shift. Outputs land in `training/runs/<experiment>/` (gitignored).
 
+A scikit-learn per-pixel tree baseline lives in `training/src/seabed_forest/` (RF +
+HistGradientBoosting, CPU, same 3 bands, reuses `seabed_unet`'s data/normalize/metrics).
+See `training/README.md`.
+
 ## Architecture
 
 ### Data
