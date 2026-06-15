@@ -21,7 +21,7 @@ from seabed_unet.config import Config
 from seabed_unet.crossval import FOLD_ORDER, fold_config, lopo_folds, print_table, summarize
 from seabed_unet.logging_utils import add_file_handler, remove_handler, setup_logging
 
-from .config import ForestConfig, load_forest_config
+from .config import SUPPORTED_MODELS, ForestConfig, load_forest_config
 from .eval_spatial import evaluate_spatial
 from .evaluate import evaluate_run
 from .train import train_run
@@ -97,9 +97,25 @@ def main(argv=None) -> None:
     parser.add_argument("--limit", type=int, default=None, help="Cap tiles per split (smoke only).")
     parser.add_argument("--prune-models", action="store_true",
                         help="Delete each fold's model_*.joblib after scoring (disk-frugal; metrics/summaries kept).")
+    parser.add_argument("--models", default=None,
+                        help="Comma-separated subset of model kinds to run (overrides forest.models), "
+                             "e.g. 'hist_gradient_boosting'. Useful when RF models are too large for disk.")
     args = parser.parse_args(argv)
+
+    # Validate --models early, before touching the config file on disk.
+    requested: list[str] | None = None
+    if args.models:
+        requested = [m.strip() for m in args.models.split(",") if m.strip()]
+        bad = [m for m in requested if m not in SUPPORTED_MODELS]
+        if bad:
+            raise SystemExit(f"--models: unknown kind(s) {bad}; valid: {list(SUPPORTED_MODELS)}")
+
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg, forest = load_forest_config(args.config, base_dir=base)
+
+    if requested is not None:
+        forest = forest.model_copy(update={"models": requested})
+
     run_lopo(cfg, forest, limit=args.limit, prune_fold_models=args.prune_models)
 
 

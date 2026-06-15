@@ -304,3 +304,40 @@ def test_run_lopo_prunes_fold_models(tmp_path):
     assert list(lopo_dir.rglob("model_*.joblib")) == []
     # per-fold metrics survive (proof the fold ran and was scored before pruning)
     assert (lopo_dir / "fold_polygon1" / "metrics_random_forest.json").exists()
+
+
+def test_crossval_cli_models_override(tmp_path):
+    from seabed_forest import crossval as cv
+    _build_synth(tmp_path)
+    # config that normally has BOTH models + spatial enabled
+    (tmp_path / "default.yaml").write_text(yaml.safe_dump({
+        "outputs_dir": "outputs", "run_tag": "t128m_o50pct_r1m",
+        "classes": {"rock": 1, "shallow_rock": 2, "sand": 3},
+        "feature_nodata": -9999.0, "ignore_label": 0,
+        "split": {"mode": "spatial_blocks", "polygons": ["polygon1", "polygon3", "polygon4"],
+                  "use_augmented_for_train": False},
+        "normalization": {"default_mode": "per_polygon",
+                          "band_modes": {"bathymetry": "global", "slope": "global"}},
+        "runs_dir": "runs",
+    }))
+    exp = tmp_path / "forest_both.yaml"
+    exp.write_text(yaml.safe_dump({
+        "name": "forest_ovr", "bands": ["backscatter", "bathymetry", "slope"],
+        "forest": {"models": ["random_forest", "hist_gradient_boosting"],
+                   "spatial": {"enabled": True, "radius": 2}},
+    }))
+    cv.main(["--config", str(exp), "--base-dir", str(tmp_path),
+             "--models", "hist_gradient_boosting", "--prune-models"])
+    lopo_dir = tmp_path / "runs" / "forest_ovr_lopo"
+    assert (lopo_dir / "summary_hist_gradient_boosting.json").exists()
+    assert (lopo_dir / "spatial_summary_hist_gradient_boosting.json").exists()
+    # RF was overridden out -> no RF summaries
+    assert not (lopo_dir / "summary_random_forest.json").exists()
+    assert not (lopo_dir / "spatial_summary_random_forest.json").exists()
+
+
+def test_crossval_cli_models_rejects_unknown():
+    import pytest
+    from seabed_forest import crossval as cv
+    with pytest.raises((SystemExit, ValueError)):
+        cv.main(["--config", "x.yaml", "--models", "svm"])
