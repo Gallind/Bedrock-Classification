@@ -150,3 +150,38 @@ def test_predict_polygon_map_writes_outputs(tmp_path):
         with rasterio.open(tif) as src:
             assert src.count == 1 and src.dtypes[0] == "uint8"
         assert (run_dir / "maps" / f"polygon4_pred_{kind}.jpg").exists()
+
+
+from seabed_forest.crossval import run_lopo
+
+
+def _write_blocks_yaml(tmp_path):
+    (tmp_path / "default.yaml").write_text(yaml.safe_dump({
+        "outputs_dir": "outputs", "run_tag": "t128m_o50pct_r1m",
+        "classes": {"rock": 1, "shallow_rock": 2, "sand": 3},
+        "feature_nodata": -9999.0, "ignore_label": 0,
+        "split": {"mode": "spatial_blocks",
+                  "polygons": ["polygon1", "polygon3", "polygon4"],
+                  "use_augmented_for_train": False},
+        "normalization": {"default_mode": "per_polygon",
+                          "band_modes": {"bathymetry": "global", "slope": "global"}},
+        "runs_dir": "runs",
+    }))
+    exp = tmp_path / "forest_3band.yaml"
+    exp.write_text(yaml.safe_dump({
+        "name": "forest_lopo_smoke", "bands": ["backscatter", "bathymetry", "slope"],
+        "forest": {"models": ["random_forest"]},
+    }))
+    return exp
+
+
+def test_run_lopo_writes_summary(tmp_path):
+    _build_synth(tmp_path)
+    exp = _write_blocks_yaml(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    summaries = run_lopo(cfg, forest)
+    lopo_dir = tmp_path / "runs" / "forest_lopo_smoke_lopo"
+    assert (lopo_dir / "summary_random_forest.json").exists()
+    s = summaries["random_forest"]
+    assert "macro_dice" in s and "mean" in s["macro_dice"]
+    assert set(s["macro_dice"]["per_fold"]) == {"polygon1", "polygon3", "polygon4"}
