@@ -29,3 +29,9 @@ forest:
     max_leaf_nodes: 31
     l2_regularization: 0.0
     early_stopping: true
+  spatial:                           # edge-aware guided-filter regularization of the posterior
+    enabled: true                    # gates the spatial LOPO pass in crossval
+    method: guided
+    radius: 4                        # box radius -> 9x9 window
+    eps: 0.001                       # guided-filter regularization (probs/guide in [0,1])
+    guide_band: bathymetry           # depth edges guide the smoothing (top RF/HGB importance)
