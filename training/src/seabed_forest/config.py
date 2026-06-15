@@ -23,6 +23,12 @@ class RFParams(BaseModel):
     n_jobs: int = -1
     class_weight: str = Field(default="balanced", pattern="^(balanced|balanced_subsample)$")
 
+    @model_validator(mode="after")
+    def _check_n_jobs(self) -> "RFParams":
+        if self.n_jobs == 0:
+            raise ValueError("n_jobs must be -1 (all CPUs) or >= 1; 0 is invalid for sklearn")
+        return self
+
 
 class HGBParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -45,7 +51,7 @@ class ForestConfig(BaseModel):
     hist_gradient_boosting: HGBParams = HGBParams()
 
     @model_validator(mode="after")
-    def _check(self) -> "ForestConfig":
+    def _check_fields(self) -> "ForestConfig":
         if not self.models:
             raise ValueError("forest.models must list at least one model")
         bad = [m for m in self.models if m not in SUPPORTED_MODELS]

@@ -26,8 +26,29 @@ def test_forest_config_rejects_even_filter():
 
 
 def test_forest_config_rejects_unknown_key():
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="bogus"):
         ForestConfig(bogus=1)
+
+
+def test_forest_config_rejects_empty_models():
+    with pytest.raises(ValueError, match="at least one model"):
+        ForestConfig(models=[])
+
+
+def test_forest_config_rejects_duplicate_models():
+    with pytest.raises(ValueError, match="duplicate models"):
+        ForestConfig(models=["random_forest", "random_forest"])
+
+
+def test_forest_config_rejects_zero_max_pixels():
+    with pytest.raises(ValueError, match="max_pixels_per_class"):
+        ForestConfig(max_pixels_per_class=0)
+
+
+def test_forest_config_rejects_zero_n_jobs():
+    from seabed_forest.config import RFParams
+    with pytest.raises(ValueError, match="n_jobs"):
+        RFParams(n_jobs=0)
 
 
 def test_load_forest_config_pops_forest_block(tmp_path):
