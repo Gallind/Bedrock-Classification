@@ -227,6 +227,39 @@ inputs: the real levers are engineered/multi-scale features or more annotated sh
 The U-Net rows are indicative (4 surveys, no polygon6), not a strict head-to-head. RF models are
 ~3 GB each (300 unbounded trees over ~0.5 M pixels); HGB is ~1 MB.
 
+### Spatial regularization (Option C)
+
+A per-pixel classifier has no spatial context. `seabed_forest.spatial` regularizes the
+**assembled posterior** (the cross-tile-blended probability field from `MapAccumulator`,
+before argmax) with an edge-aware **guided filter** (He, Sun & Tang 2013) guided by the
+bathymetry band — smoothing salt-and-pepper while preserving depth boundaries. Pure
+numpy/scipy, no new deps (a dense CRF was excluded: `pydensecrf` is uninstallable here).
+Config: `forest.spatial` (`enabled`, `radius`, `eps`, `guide_band`). Maps:
+`predict --spatial`; comparison: `eval_spatial`; cross-survey: `crossval` (writes
+`spatial_summary_<kind>.json`). Evaluation samples each North-up map back to the test tiles,
+scoring the raw-argmax map vs the regularized map on **identical pixels**, so the delta is
+purely the spatial effect.
+
+| protocol | model | mDice raw → spatial | OA raw → spatial | rock | shallow_rock | sand |
+|--|--|--|--|--|--|--|
+| blocks (dev) | random_forest | 0.728 → **0.739** | 0.753 → 0.761 | 0.906→0.908 | 0.465→0.493 | 0.811→0.816 |
+| blocks (dev) | hist_grad_boost | 0.733 → **0.743** | 0.768 → 0.776 | 0.907→0.908 | 0.465→0.488 | 0.827→0.832 |
+| LOPO | random_forest | 0.542 → **0.559** | 0.600 → 0.626 | 0.795→0.831 | 0.311→0.314 | 0.521→0.532 |
+| LOPO | hist_grad_boost | 0.541 → **0.547** | 0.605 → 0.622 | 0.806→0.833 | 0.301→0.295 | 0.515→0.514 |
+
+**Reading.** Guided-filter regularization gives a **small but consistent** macro-Dice lift —
+dev ≈ +0.01, LOPO RF +0.017 / HGB +0.006 — and a larger OA gain, driven mainly by **rock**
+(LOPO rock dice ≈ +0.035) and cleaner maps. It is essentially free (no extra training,
+scipy-only, runs on the existing posterior). The biggest single win is the polygon1 LOPO fold
+(RF 0.596 → 0.650). Honest limits: regularization *reinforces existing signal but cannot
+manufacture context the model never captured* — on the near-zero-signal shallow_rock folds
+(polygon5/6) smoothing nudges that rare class to ~0, and the lift does **not** close the gap to
+the U-Net's LOPO 0.608 (best tree+spatial = RF 0.559). So spatial regularization is a worthwhile,
+cheap improvement to the tree baseline, but the headline conclusion stands: on these 3 raw bands
+the real levers are engineered/multi-scale features or more annotated shallow_rock area.
+(Note: RF spatial LOPO needs ~5–7 GB per fold transiently; use `crossval --prune-models` to
+delete each fold's RF after scoring, and `--models hist_gradient_boosting` for a disk-frugal run.)
+
 ## Honest expectations
 
 The labeled area (~1–2 km² across four surveys) is two orders of magnitude smaller
