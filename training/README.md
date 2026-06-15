@@ -206,6 +206,27 @@ LOPO summaries go to `training/runs/<name>_lopo/summary_<kind>.json`. Because th
 trains on five surveys while the U-Net numbers above are on four, the U-Net reference row is
 indicative, not a strict head-to-head.
 
+### Results (seed 42, 5 surveys, 517,802 deduped train pixels)
+
+| protocol | model | macro-Dice | OA | κ | rock | shallow_rock | sand |
+|--|--|--|--|--|--|--|--|
+| blocks (dev) | random_forest | 0.715 | 0.741 | 0.500 | 0.899 | 0.445 | 0.802 |
+| blocks (dev) | hist_grad_boost | **0.730** | 0.765 | 0.532 | 0.904 | 0.461 | 0.824 |
+| blocks (dev) | U-Net (4-survey ref) | 0.784 | 0.782 | 0.599 | — | — | — |
+| LOPO | random_forest | 0.537 ± 0.108 | 0.592 ± 0.176 | — | 0.779 | 0.313 | 0.518 |
+| LOPO | hist_grad_boost | 0.537 ± 0.118 | 0.598 ± 0.188 | — | 0.793 | 0.302 | 0.515 |
+| LOPO | U-Net (4-survey ref) | **0.608 ± 0.084** | 0.710 ± 0.121 | — | 0.841 | 0.371 | 0.612 |
+
+**Reading.** On the same three raw bands the per-pixel trees do **not** beat the U-Net on
+either protocol (HGB edges RF). They give strong rock (≈0.90 dev / ≈0.79 LOPO) and sand
+separability and competitive OA, but lacking spatial context they trail on macro-Dice, and
+shallow_rock — the contextual, depth-defined class — collapses cross-survey (LOPO dice 0.02–0.05
+on the polygon5/polygon6 folds). Feature importance ranks bathymetry first (RF 0.40 / HGB 0.29),
+then backscatter, then slope. The accuracy ceiling is **not** raised by a model swap on these
+inputs: the real levers are engineered/multi-scale features or more annotated shallow_rock area.
+The U-Net rows are indicative (4 surveys, no polygon6), not a strict head-to-head. RF models are
+~3 GB each (300 unbounded trees over ~0.5 M pixels); HGB is ~1 MB.
+
 ## Honest expectations
 
 The labeled area (~1–2 km² across four surveys) is two orders of magnitude smaller
