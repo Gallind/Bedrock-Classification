@@ -39,6 +39,16 @@ class HGBParams(BaseModel):
     early_stopping: bool = True
 
 
+class SpatialConfig(BaseModel):
+    """Edge-aware spatial regularization of the posterior (guided filter)."""
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool = False
+    method: str = Field(default="guided", pattern="^(guided)$")
+    radius: int = Field(default=4, ge=1)          # box radius -> (2r+1) window
+    eps: float = Field(default=1e-3, gt=0.0)      # guided-filter regularization (probs/guide in [0,1])
+    guide_band: str = "bathymetry"                # feature band used as the edge guide
+
+
 class ForestConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -49,6 +59,7 @@ class ForestConfig(BaseModel):
     majority_filter_size: int = 0             # 0/1 = off; odd N>1 = NxN majority filter on prediction maps
     random_forest: RFParams = RFParams()
     hist_gradient_boosting: HGBParams = HGBParams()
+    spatial: SpatialConfig = SpatialConfig()
 
     @model_validator(mode="after")
     def _check_fields(self) -> "ForestConfig":
