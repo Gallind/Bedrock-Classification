@@ -29,7 +29,7 @@ from .train import train_run
 logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 
-def run_lopo(cfg: Config, forest: ForestConfig, limit: int | None = None) -> dict[str, dict]:
+def run_lopo(cfg: Config, forest: ForestConfig, limit: int | None = None, prune_fold_models: bool = False) -> dict[str, dict]:
     """Train+evaluate every fold for every model; write per-model summaries. Returns
     {kind: summary_dict}."""
     polygons = cfg.split.polygons or FOLD_ORDER
@@ -62,6 +62,11 @@ def run_lopo(cfg: Config, forest: ForestConfig, limit: int | None = None) -> dic
                 for kind in forest.models:
                     per_kind_raw[kind][test_poly] = spatial_reports[f"{kind}_map_raw"]
                     per_kind_spatial[kind][test_poly] = spatial_reports[f"{kind}_map_spatial"]
+            if prune_fold_models:
+                for kind in forest.models:
+                    model_path = fcfg.run_dir / f"model_{kind}.joblib"
+                    model_path.unlink(missing_ok=True)
+                logger.info(f"    pruned fold model(s) for {test_poly}")
 
         summaries: dict[str, dict] = {}
         for kind, fold_reports in per_kind.items():
@@ -90,10 +95,12 @@ def main(argv=None) -> None:
     parser.add_argument("--config", required=True, help="Forest experiment config YAML.")
     parser.add_argument("--base-dir", default=None, help="Repo root (default: cwd).")
     parser.add_argument("--limit", type=int, default=None, help="Cap tiles per split (smoke only).")
+    parser.add_argument("--prune-models", action="store_true",
+                        help="Delete each fold's model_*.joblib after scoring (disk-frugal; metrics/summaries kept).")
     args = parser.parse_args(argv)
     base = Path(args.base_dir).resolve() if args.base_dir else Path.cwd()
     cfg, forest = load_forest_config(args.config, base_dir=base)
-    run_lopo(cfg, forest, limit=args.limit)
+    run_lopo(cfg, forest, limit=args.limit, prune_fold_models=args.prune_models)
 
 
 if __name__ == "__main__":

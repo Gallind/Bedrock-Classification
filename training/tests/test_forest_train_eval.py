@@ -289,3 +289,18 @@ def test_run_lopo_spatial_summary(tmp_path):
     data = json.loads(sp.read_text())
     assert "map_raw" in data and "map_spatial" in data
     assert set(data["map_spatial"]["macro_dice"]["per_fold"]) == {"polygon1", "polygon3", "polygon4"}
+
+
+def test_run_lopo_prunes_fold_models(tmp_path):
+    _build_synth(tmp_path)
+    exp = _write_blocks_spatial_yaml(tmp_path)
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    run_lopo(cfg, forest, prune_fold_models=True)
+    lopo_dir = tmp_path / "runs" / "forest_lopo_spatial_lopo"
+    # summaries are kept...
+    assert (lopo_dir / "summary_random_forest.json").exists()
+    assert (lopo_dir / "spatial_summary_random_forest.json").exists()
+    # ...but no fold model joblibs remain anywhere under the LOPO dir
+    assert list(lopo_dir.rglob("model_*.joblib")) == []
+    # per-fold metrics survive (proof the fold ran and was scored before pruning)
+    assert (lopo_dir / "fold_polygon1" / "metrics_random_forest.json").exists()
