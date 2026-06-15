@@ -61,5 +61,44 @@ def test_train_run_writes_artifacts(tmp_path):
         assert (run_dir / f"feature_importance_{kind}.csv").exists()
     assert set(summary["models"]) == set(forest.models)
     assert summary["n_train_pixels"] > 0
-    # No augmented tiles exist, but the guard must hold regardless.
-    assert summary["n_train_pixels"] == summary["n_train_pixels_base_only"]
+    # No augmented tiles in this fixture, so all train tiles are base tiles.
+    assert summary["n_base_tiles"] == summary["n_all_train_tiles"]
+
+
+def test_rotaug_tiles_excluded_from_training(tmp_path):
+    rng = np.random.default_rng(1)
+    # polygon1 (train): one base _rot tile + one augmented _rotaug tile.
+    make_run_dir(tmp_path, "polygon1", "_rot",
+                 {"polygon1_base": _mixed_tile([1.0, 2.0, 3.0], rng)})
+    make_run_dir(tmp_path, "polygon1", "_rotaug",
+                 {"polygon1_aug": _mixed_tile([1.0, 2.0, 3.0], rng)})
+    # val/test need base tiles too.
+    make_run_dir(tmp_path, "polygon3", "_rot", {"polygon3_a": _mixed_tile([5.0, 6.0, 7.0], rng)})
+    make_run_dir(tmp_path, "polygon4", "_rot", {"polygon4_a": _mixed_tile([9.0, 10.0, 11.0], rng)})
+
+    (tmp_path / "default.yaml").write_text(yaml.safe_dump({
+        "outputs_dir": "outputs", "run_tag": "t128m_o50pct_r1m",
+        "classes": {"rock": 1, "shallow_rock": 2, "sand": 3},
+        "feature_nodata": -9999.0, "ignore_label": 0,
+        "split": {"mode": "polygon", "train": ["polygon1"], "val": ["polygon3"],
+                  "test": ["polygon4"], "use_augmented_for_train": True},
+        "normalization": {"default_mode": "per_polygon",
+                          "band_modes": {"bathymetry": "global", "slope": "global"}},
+        "runs_dir": "runs",
+    }))
+    exp = tmp_path / "forest_aug.yaml"
+    exp.write_text(yaml.safe_dump({
+        "name": "forest_aug_guard", "bands": ["backscatter", "bathymetry", "slope"],
+        "forest": {"models": ["random_forest"], "dedup_overlap": False},
+    }))
+
+    cfg, forest = load_forest_config(exp, base_dir=tmp_path)
+    summary = train_run(cfg, forest)
+
+    # The augmented tile IS loaded into the train split (tile level)...
+    assert summary["n_all_train_tiles"] == 2
+    # ...but only the single BASE tile trains the forest.
+    assert summary["n_base_tiles"] == 1
+    # One 8x8 tile, 8 background pixels (top row=0) masked out -> 56 valid pixels.
+    # dedup is off, so no further reduction. If the aug tile leaked in, this would be ~112.
+    assert summary["n_train_pixels"] == 56

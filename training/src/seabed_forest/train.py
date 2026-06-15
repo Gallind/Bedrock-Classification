@@ -109,7 +109,7 @@ def _train_run(cfg: Config, forest: ForestConfig, run_dir: Path, limit: int | No
     logger.info(f"[+] models -> {run_dir}")
     return {
         "name": cfg.name, "models": list(forest.models),
-        "n_train_pixels": int(X.shape[0]), "n_train_pixels_base_only": int(X.shape[0]),
+        "n_train_pixels": int(X.shape[0]),
         "n_base_tiles": n_base, "n_all_train_tiles": n_all, "run_dir": str(run_dir),
     }
 
