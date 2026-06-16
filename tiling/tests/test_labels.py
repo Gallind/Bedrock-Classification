@@ -3,6 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import pytest
 from shapely.geometry import LineString, Polygon
 
 from seabed_tiler.config import LabelRule
@@ -72,3 +73,36 @@ def test_bowtie_polygon_is_repaired_to_valid_area():
     out = _feature_to_polygons(bowtie, polygonize=False)
     assert out
     assert all(p.is_valid and p.area > 0 for p in out)
+
+
+# Snap tolerance: rings the annotator left open by a small gap (polygon3's two
+# biggest annotations are open by 0.1-1.1 m) must close when within tolerance.
+
+NEARLY_CLOSED = [(0, 0), (10, 0), (10, 10), (0, 10), (0, 1)]  # 1 m short of closing
+
+
+def test_nearly_closed_ring_snaps_within_tolerance():
+    polys = _feature_to_polygons(
+        LineString(NEARLY_CLOSED), polygonize=True, close_tolerance_m=2.0
+    )
+    assert len(polys) == 1
+    assert polys[0].area == pytest.approx(100.0, rel=0.1)
+
+
+def test_nearly_closed_ring_dropped_at_default_zero_tolerance():
+    assert _feature_to_polygons(LineString(NEARLY_CLOSED), polygonize=True) == []
+
+
+def test_gap_beyond_tolerance_still_dropped():
+    wide_open = [(0, 0), (10, 0), (10, 10), (0, 10), (0, 5)]  # 5 m gap
+    assert _feature_to_polygons(
+        LineString(wide_open), polygonize=True, close_tolerance_m=2.0
+    ) == []
+
+
+def test_exactly_closed_ring_unaffected_by_tolerance():
+    polys = _feature_to_polygons(
+        LineString(SQUARE), polygonize=True, close_tolerance_m=2.0
+    )
+    assert len(polys) == 1
+    assert polys[0].area == pytest.approx(100.0)

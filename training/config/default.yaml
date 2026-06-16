@@ -1,0 +1,60 @@
+# Shared training defaults. An experiment config (e.g. experiment_3band.yaml) is
+# deep-merged on top, mirroring tiling/config/default.yaml semantics.
+# `name` and `bands` are experiment-level and intentionally absent here.
+
+outputs_dir: outputs            # where the tiler wrote its runs (repo-relative)
+run_tag: t128m_o50pct_r1m       # base run tag; _rot / _rotaug dirs are derived from it
+classes: {rock: 1, shallow_rock: 2, sand: 3}
+feature_nodata: -9999.0
+ignore_label: 0                 # background/unlabeled: never trained, never scored
+
+# Spatial split (binding contract: docs/DATA_AUGMENTATION.md — never random tiles).
+# Default mode: spatial_blocks — every polygon is cut into VAL | TRAIN | TEST regions
+# along its survey long axis (small regions at the ends: a middle band would need
+# 2x buffer of clearance, wider than the band itself on these short strips). Tiles
+# within buffer_m of a region boundary are dropped so splits share ZERO pixels
+# (96 m > tile half-diagonal 90.5 m => 192 m separation > 181 m worst case).
+# Augmented (_rotaug) tiles are kept only when their center lies in a train region.
+# polygon mode (whole-polygon holdout via train/val/test lists) remains available and
+# is what seabed_unet.crossval uses for leave-one-polygon-out reporting.
+split:
+  mode: spatial_blocks
+  polygons: [polygon1, polygon3, polygon4, polygon5]
+  fractions: [0.7, 0.15, 0.15]  # train/val/test share of each polygon's base tiles
+  buffer_m: 96                  # dropped strip on EACH side of a region boundary
+  use_augmented_for_train: true
+
+normalization:
+  # per_polygon = survey self-normalizes (required for backscatter: poly1 is JPEG
+  # grayscale 0-255 vs real dB on poly3/4/5). global = one train-only range applied
+  # everywhere — preserves absolute depth/slope, which per-polygon scaling erases
+  # (shallow_rock is literally defined by depth).
+  default_mode: per_polygon
+  band_modes:
+    bathymetry: global
+    slope: global
+    backscatter: per_polygon
+  clip_percentiles: [2.0, 98.0] # robust min/max against outliers before scaling to [0,1]
+
+model:
+  base_filters: 16              # lightweight U-Net; ~0.5M params at depth 4
+  depth: 4                      # 128 px / 2^4 = 8 px bottleneck
+
+loss:
+  ce_weight: 0.5                # combined loss = ce_weight*weightedCE + dice_weight*softDice
+  dice_weight: 0.5
+  class_weights: auto           # auto = inverse pixel frequency from TRAIN pixels only
+
+train:
+  seed: 42
+  batch_size: 16
+  epochs: 200
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  scheduler_patience: 10        # ReduceLROnPlateau on val macro-Dice
+  scheduler_factor: 0.5
+  early_stop_patience: 25       # epochs without val macro-Dice improvement
+  d4_augment: true              # training-time D4 ops via seabed_tiler.augment
+  device: auto                  # auto -> cuda > mps > cpu
+
+runs_dir: training/runs         # checkpoints/metrics/maps land in <runs_dir>/<name>/

@@ -13,6 +13,7 @@ Run:
 
 from __future__ import annotations
 
+import logging
 import argparse
 import math
 from pathlib import Path
@@ -23,7 +24,10 @@ import rasterio
 from PIL import Image
 from rasterio.transform import from_origin
 
+from .logging_utils import add_file_handler, setup_logging
 from .viz import colorize, label_to_rgb, normalize_band, resolve_styles, write_prj, write_worldfile
+
+logger = logging.getLogger(__spec__.name if __spec__ is not None else __name__)
 
 
 def _gather_grid(paths, manifest_path=None):
@@ -58,7 +62,7 @@ def _gather_grid(paths, manifest_path=None):
 def stitch_features(tiles_dir: Path, out_dir: Path, styles: dict):
     paths = sorted((tiles_dir / "tiles" / "features").glob("*.tif"))
     if not paths:
-        print("  no feature tiles found")
+        logger.info("  no feature tiles found")
         return
     xmin, ymax, res, n_rows, n_cols, transform, crs = _gather_grid(
         paths, tiles_dir / "manifest.csv"
@@ -104,13 +108,13 @@ def stitch_features(tiles_dir: Path, out_dir: Path, styles: dict):
         write_worldfile(jp, transform)
         write_prj(jp, crs)
 
-    print(f"  stitched {len(paths)} tiles -> {tif} ({n_rows}x{n_cols}px) + {n_bands} JPEG previews")
+    logger.info(f"  stitched {len(paths)} tiles -> {tif} ({n_rows}x{n_cols}px) + {n_bands} JPEG previews")
 
 
 def stitch_labels(tiles_dir: Path, out_dir: Path):
     paths = sorted((tiles_dir / "tiles" / "labels").glob("*.tif"))
     if not paths:
-        print("  no label tiles found")
+        logger.info("  no label tiles found")
         return
     xmin, ymax, res, n_rows, n_cols, transform, crs = _gather_grid(
         paths, tiles_dir / "manifest.csv"
@@ -142,7 +146,7 @@ def stitch_labels(tiles_dir: Path, out_dir: Path):
     Image.fromarray(label_to_rgb(master)).save(jp, quality=90)
     write_worldfile(jp, transform)
     write_prj(jp, crs)
-    print(f"  stitched {len(paths)} tiles -> {tif} ({n_rows}x{n_cols}px) + colorized JPEG")
+    logger.info(f"  stitched {len(paths)} tiles -> {tif} ({n_rows}x{n_cols}px) + colorized JPEG")
 
 
 def _rotated_extent(paths) -> tuple[float, float, float, float, float]:
@@ -168,7 +172,7 @@ def stitch_rotated_features(rot_tiles_dir: Path, out_dir: Path, styles: dict) ->
     from rasterio.transform import from_origin
     paths = sorted((rot_tiles_dir / "tiles" / "features").glob("*.tif"))
     if not paths:
-        print("  no rotated feature tiles found")
+        logger.info("  no rotated feature tiles found")
         return
 
     with rasterio.open(paths[0]) as ds:
@@ -227,7 +231,7 @@ def stitch_rotated_features(rot_tiles_dir: Path, out_dir: Path, styles: dict) ->
         write_worldfile(jp, dst_transform)
         write_prj(jp, crs)
 
-    print(f"  stitched {len(paths)} rotated feature tiles -> {tif} ({n_rows}x{n_cols}px) + {n_bands} JPEG previews")
+    logger.info(f"  stitched {len(paths)} rotated feature tiles -> {tif} ({n_rows}x{n_cols}px) + {n_bands} JPEG previews")
 
 
 def stitch_rotated_labels(rot_tiles_dir: Path, out_dir: Path) -> None:
@@ -236,7 +240,7 @@ def stitch_rotated_labels(rot_tiles_dir: Path, out_dir: Path) -> None:
     from rasterio.transform import from_origin
     paths = sorted((rot_tiles_dir / "tiles" / "labels").glob("*.tif"))
     if not paths:
-        print("  no rotated label tiles found")
+        logger.info("  no rotated label tiles found")
         return
 
     with rasterio.open(paths[0]) as ds:
@@ -280,7 +284,7 @@ def stitch_rotated_labels(rot_tiles_dir: Path, out_dir: Path) -> None:
     Image.fromarray(label_to_rgb(master)).save(jp, quality=90)
     write_worldfile(jp, dst_transform)
     write_prj(jp, crs)
-    print(f"  stitched {len(paths)} rotated label tiles -> {tif} ({n_rows}x{n_cols}px) + colorized JPEG")
+    logger.info(f"  stitched {len(paths)} rotated label tiles -> {tif} ({n_rows}x{n_cols}px) + colorized JPEG")
 
 
 def main(argv=None) -> None:
@@ -302,14 +306,16 @@ def main(argv=None) -> None:
         from .config import load_config
         tiles_dir = load_config(args.config).out_dir
     out_dir = Path(args.out) if args.out else tiles_dir / "stitched"
+    setup_logging()
+    add_file_handler(tiles_dir / "stitch.log")
     styles = {} if args.gray else resolve_styles(args.config)
 
-    print(f"[+] stitch tiles ({args.what}) from {tiles_dir}")
+    logger.info(f"[+] stitch tiles ({args.what}) from {tiles_dir}")
     if args.what in ("features", "both"):
         stitch_features(tiles_dir, out_dir, styles)
     if args.what in ("labels", "both"):
         stitch_labels(tiles_dir, out_dir)
-    print(f"[+] done -> {out_dir}")
+    logger.info(f"[+] done -> {out_dir}")
 
 
 if __name__ == "__main__":

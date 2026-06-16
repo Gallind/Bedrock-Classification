@@ -1,0 +1,4 @@
+# E2: drop backscatter (the known-weak, survey-inconsistent channel).
+# The reference paper found depth and slope the strongest single inputs.
+name: unet_2band
+bands: [bathymetry, slope]

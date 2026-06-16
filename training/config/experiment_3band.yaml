@@ -1,0 +1,5 @@
+# E1: all three feature bands. Backscatter carries a known cross-survey domain
+# shift (polygon1 = JPEG grayscale 0-255, polygons 3/4/5 = real dB) — per-polygon
+# normalization is what makes this band usable at all.
+name: unet_3band
+bands: [backscatter, bathymetry, slope]

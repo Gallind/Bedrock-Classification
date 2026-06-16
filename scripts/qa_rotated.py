@@ -23,9 +23,10 @@ import pandas as pd
 from shapely.geometry import box as shapely_box
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(Path(__file__).stem)
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "tiling" / "src"))
+from seabed_tiler.logging_utils import setup_logging
 from seabed_tiler.config import load_config
 from seabed_tiler.align import build_grid_and_features
 from seabed_tiler.rotation import compute_label_footprint, minimum_bounding_rect
@@ -33,6 +34,7 @@ from seabed_tiler.rotated_tiler import _collect_label_shapefiles, _rotated_out_d
 
 
 def main() -> None:
+    setup_logging()
     ap = argparse.ArgumentParser(description="QA: axis-aligned vs rotation-aware tiling.")
     ap.add_argument("--config", required=True, help="Polygon config YAML.")
     ap.add_argument("--base-dir", default=None)
@@ -113,7 +115,7 @@ def main() -> None:
         lines.append(f"  {col:<20s}  orig={orig_frac:.3f}  rot={rot_frac:.3f}\n")
 
     result = "".join(lines)
-    print(result)
+    logger.info(result)
     (qa_dir / "class_distribution.txt").write_text(result, encoding="utf-8")
     logger.info("QA complete -> %s", qa_dir)
 

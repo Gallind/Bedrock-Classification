@@ -31,6 +31,8 @@ layers:
 labels:
   kind: shapefile_per_class
   polygonize: true             # close LineString rings into areas before rasterizing
+  close_tolerance_m: 2.0       # snap rings the annotator left open by <= 2 m (recovers
+                               # the two largest annotations: gaps 0.1-1.1 m, ~0.15 km2)
   classes:
     rock: 1
     shallow_rock: 2

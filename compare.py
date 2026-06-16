@@ -1,11 +1,26 @@
-import pandas as pd
+"""Compare axis-aligned vs rotated tiling runs (tile counts, theta, class mix).
+
+Run from repo root: PYTHONPATH=tiling/src python compare.py
+"""
+
+import logging
+import sys
 from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, "tiling/src")
+from seabed_tiler.logging_utils import setup_logging  # noqa: E402
+
+logger = logging.getLogger("compare")
+
+setup_logging()
 
 polygons = ['polygon1', 'polygon3', 'polygon4', 'polygon5']
 run_tag = 't128m_o50pct_r1m'
 
-print(f"{'polygon':<10}  {'orig':>5}  {'rot':>5}  {'change':>7}  {'theta':>9}  {'orig_vf':>8}  {'rot_vf':>8}")
-print('-' * 70)
+logger.info(f"{'polygon':<10}  {'orig':>5}  {'rot':>5}  {'change':>7}  {'theta':>9}  {'orig_vf':>8}  {'rot_vf':>8}")
+logger.info('-' * 70)
 for poly in polygons:
     orig_p = Path(f'outputs/{poly}/{run_tag}/manifest.csv')
     rot_p  = Path(f'outputs/{poly}/{run_tag}_rot/manifest.csv')
@@ -16,10 +31,10 @@ for poly in polygons:
     theta = f"{df_r['theta_deg'].iloc[0]:.1f} deg" if 'theta_deg' in df_r.columns else 'N/A'
     v_o = df_o.valid_frac.mean()
     v_r = df_r.valid_frac.mean()
-    print(f'{poly:<10}  {n_o:>5}  {n_r:>5}  {change:>7}  {theta:>9}  {v_o:>8.3f}  {v_r:>8.3f}')
+    logger.info(f'{poly:<10}  {n_o:>5}  {n_r:>5}  {change:>7}  {theta:>9}  {v_o:>8.3f}  {v_r:>8.3f}')
 
-print()
-print('Labeled pixel totals (all polygons combined):')
+logger.info('')
+logger.info('Labeled pixel totals (all polygons combined):')
 for label, suffix in [('original', ''), ('rotated', '_rot')]:
     px = {}
     for poly in polygons:
@@ -29,4 +44,4 @@ for label, suffix in [('original', ''), ('rotated', '_rot')]:
             px[col] = px.get(col, 0) + int(df[col].sum())
     total = sum(px.values())
     parts = '  '.join(f'{k}={v:,}' for k, v in px.items())
-    print(f'  {label:<10} total labeled px={total:,}  |  {parts}')
+    logger.info(f'  {label:<10} total labeled px={total:,}  |  {parts}')

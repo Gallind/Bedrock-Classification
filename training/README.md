@@ -1,0 +1,283 @@
+# seabed_unet — U-Net training on the seabed tile dataset
+
+Per-pixel classification of the tiled seabed dataset (rock / shallow_rock / sand)
+with a lightweight U-Net trained from scratch. Consumes the rotation-aware runs the
+tiler produces under `outputs/` and obeys the binding contract in
+`docs/DATA_AUGMENTATION.md` (spatial splits only, augmented tiles train-only,
+loss masked by feature validity, rigid D4 augmentation only).
+
+## Environment
+
+This is a **separate venv** from the tiler's: PyTorch dropped macOS x86_64 wheels
+after 2.2.x and those only exist up to Python 3.12 (the tiler's `.venv` is 3.14).
+
+```bash
+python3.12 -m venv .venv-train
+.venv-train/bin/python -m pip install -r training/requirements.txt
+```
+
+Prerequisite: the tile dataset must exist — see `docs/TRAINING_DATA_SETUP.md`
+(`outputs/<polygon>/t128m_o50pct_r1m_rot` and `_rotaug` for all four polygons).
+
+## Commands (run from repo root)
+
+```bash
+export PYTHONPATH=tiling/src:training/src
+
+# Train (writes best.pt, normalization_stats.json, history.csv to training/runs/<name>/)
+.venv-train/bin/python -m seabed_unet.train --config training/config/experiment_3band.yaml
+
+# Evaluate on the held-out test polygon (metrics.json + confusion matrix CSV/PNG)
+.venv-train/bin/python -m seabed_unet.evaluate --config training/config/experiment_3band.yaml
+
+# Classified map (georeferenced GeoTIFF + colorized JPEG) for any polygon
+.venv-train/bin/python -m seabed_unet.predict --config training/config/experiment_3band.yaml --polygon polygon4
+
+# Leave-one-polygon-out cross-validation (4 retrains; the honest cross-survey number)
+.venv-train/bin/python -m seabed_unet.crossval --config training/config/experiment_3band.yaml
+
+# Watch the model classify tiles live (matplotlib window; --save adds an animated GIF)
+.venv-train/bin/python -m seabed_unet.watch --config training/config/experiment_3band.yaml \
+    --polygon polygon4 --delay 0.4 --save
+
+# Tests
+.venv-train/bin/python -m pytest training/tests -q
+```
+
+## Design (decisions and why)
+
+- **3-class output** (rock=1, shallow_rock=2, sand=3). Background (0) is *unlabeled*,
+  not a class: it is ignored in loss and metrics together with every pixel where any
+  feature band is nodata (−9999) / NaN — otherwise the model learns that "no data"
+  means "background seabed".
+- **Two split schemes** (config `split.mode`). Random tile splits are forbidden —
+  tiles overlap 50%, so they leak near-duplicate pixels (`docs/DATA_AUGMENTATION.md`):
+  - `spatial_blocks` (default, development): every polygon is cut into contiguous
+    VAL | TRAIN | TEST regions along its survey long axis; tiles within `buffer_m`
+    (96 m > tile half-diagonal 90.5 m) of a boundary are dropped, so splits share
+    **zero pixels** by construction. All four surveys contribute to training.
+    The small regions sit at the strip ends because a middle band would need
+    2× buffer of clearance — wider than the band itself on these short surveys.
+  - `polygon` (reporting): whole-polygon holdout; `seabed_unet.crossval` runs
+    leave-one-polygon-out over all four polygons and reports mean±std — the only
+    number that measures generalization to an unseen survey.
+- **Per-band normalization** (config `normalization.band_modes`): bathymetry and
+  slope are normalized **globally** (one train-only range, preserving absolute
+  depth across surveys — shallow_rock is literally defined by depth, which
+  per-polygon scaling erases); backscatter stays **per-polygon** (the survey
+  self-normalizes, bridging the JPEG-grayscale-vs-dB domain shift; feature-only,
+  so legitimate at inference on a new survey).
+- **Loss** = weighted CE + soft Dice (both masked); class weights = inverse pixel
+  frequency from train pixels only.
+- **Architecture**: classic U-Net, depth 4, base 16 filters (~1.9M params), variable
+  input channels (2 or 3), from scratch — bands are physical measurements, not RGB,
+  so there are no meaningful pretrained weights.
+- **Determinism**: seeded RNGs, single-process loading; reruns wipe their run dir
+  (same policy as the tiler).
+
+## Experiments
+
+Two band configurations, same split, same seed:
+
+| Experiment | Config | Bands |
+|---|---|---|
+| E1 | `experiment_3band.yaml` | backscatter + bathymetry + slope |
+| E2 | `experiment_2band.yaml` | bathymetry + slope |
+
+### Results — round 2 (fixed polygon3 labels, seed 42) — CURRENT
+
+Round 1's numbers (below) were measured against **incomplete polygon3 ground
+truth**: its two largest annotations (rings left open by 0.1–1.1 m, ~0.15 km²)
+were silently dropped during rasterization, leaving 47% of that survey
+unlabeled. The `close_tolerance_m` fix recovered them (coverage now 94.2%);
+round 2 retrains and rescores everything on the corrected dataset.
+
+#### Development split (spatial blocks; test = 14 tiles)
+
+| Metric (test regions) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.782** | 0.670 |
+| Cohen's kappa | **0.599** | 0.386 |
+| macro Dice | **0.784** | 0.670 |
+| rock / shallow_rock / sand Dice | 0.955 / 0.568 / 0.827 | 0.916 / 0.356 / 0.738 |
+
+#### Cross-survey generalization (LOPO, mean ± std over 4 folds)
+
+| Metric (held-out polygon) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.710 ± 0.121** | 0.582 ± 0.188 |
+| Cohen's kappa | **0.481 ± 0.147** | 0.299 ± 0.216 |
+| macro Dice | **0.608 ± 0.084** | 0.483 ± 0.155 |
+| rock Dice | **0.841 ± 0.121** | 0.629 ± 0.250 |
+| shallow_rock Dice | **0.371 ± 0.271** | 0.239 ± 0.217 |
+| sand Dice | **0.612 ± 0.266** | 0.580 ± 0.201 |
+
+**Reading.** Headline numbers moved slightly *down* vs round 1 — that is the
+honest correction, not a regression: the polygon3 LOPO fold is now scored on
+~2× the labeled area (0.745 macro-Dice on the full survey vs 0.802 on the
+labeled half), and every fold's training distribution shifted with the
+recovered labels (polygon3 is now 50% rock). Round-1 and round-2 numbers are
+**not comparable**; round 2 is the trustworthy baseline going forward.
+Unchanged conclusions: 3-band beats 2-band on every metric under both
+protocols; rock is solid cross-survey (0.84); shallow_rock remains the weak
+class (polygon5 fold ≈ 0 — that survey has almost no shallow_rock tiles).
+
+### Results — round 1 (superseded: incomplete polygon3 ground truth)
+
+Two protocols, two questions. They are **not comparable to each other**: the
+development split tests within surveys the model has partly seen; LOPO tests on
+a survey the model has never seen.
+
+#### Development split (spatial blocks; val/test = 14 tiles each)
+
+| Metric (test regions) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.875** | 0.748 |
+| Cohen's kappa | **0.729** | 0.454 |
+| macro Dice | **0.836** | 0.665 |
+| rock Dice | **0.956** | 0.878 |
+| shallow_rock Dice | **0.642** | 0.294 |
+| sand Dice | **0.912** | 0.822 |
+
+#### Cross-survey generalization (LOPO, mean ± std over 4 folds)
+
+| Metric (held-out polygon) | 3-band | 2-band |
+|---|---|---|
+| overall accuracy | **0.724 ± 0.100** | 0.551 ± 0.227 |
+| Cohen's kappa | **0.496 ± 0.133** | 0.284 ± 0.250 |
+| macro Dice | **0.644 ± 0.094** | 0.473 ± 0.157 |
+| rock Dice | **0.817 ± 0.080** | 0.636 ± 0.200 |
+| shallow_rock Dice | **0.419 ± 0.270** | 0.208 ± 0.153 |
+| sand Dice | **0.697 ± 0.218** | 0.575 ± 0.251 |
+
+Artifacts: `training/runs/<exp>/eval_test/` (blocks), `training/runs/<exp>_lopo/`
+(per-fold runs + `summary.json`), maps in `training/runs/<exp>/maps/`.
+
+**Reading of the results.**
+- **Per-band normalization worked.** Round 0 (per-polygon scaling everywhere,
+  whole-polygon split test=polygon4) scored macro-Dice 0.496 (3-band); the
+  matching LOPO fold now scores **0.618** on the same test polygon, and sand
+  Dice on that fold jumped 0.476 → 0.743. Restoring absolute depth was the
+  single biggest lever, exactly as hypothesized (shallow_rock is depth-defined).
+  (Caveat: round-0 trained on poly1+5/val poly3; the LOPO fold trains on
+  poly1+3/val poly5 — same test survey, slightly different train mix.)
+- **Backscatter earns its place.** 3-band beats 2-band on every metric under
+  both protocols (LOPO macro-Dice 0.644 vs 0.473) — per-polygon backscatter
+  normalization successfully bridges the grayscale-vs-dB shift; round 0's
+  "neither dominates" verdict is overturned.
+- **The predicted polygon4 map** now reproduces the reference structure: rock
+  massif, shallow_rock halo on the correct flank, clean sand basin (compare
+  `runs/unet_3band/maps/polygon4_pred.jpg` with
+  `outputs/polygon4/t128m_o50pct_r1m_rot/stitched/labels.jpg`).
+- **Remaining weak spot: shallow_rock across surveys** (LOPO 0.419 ± 0.270; the
+  polygon5 fold scores 0.000 — that survey has only ~11% shallow_rock pixels and
+  12 base tiles, so the class essentially vanishes from its fold). More
+  annotated area with shallow_rock is the highest-value data request.
+- The dev-split numbers (0.836 macro-Dice) are the optimistic within-survey view;
+  quote the LOPO numbers when describing generalization. Dev val/test are only
+  14 tiles each — the geometric maximum for leak-free tile-level eval regions on
+  these short survey strips (96 m buffers eat 15% bands; polygon3 contributes
+  train-only).
+
+Next probes: hillshade 4th band, D4 test-time augmentation + E3/E4 ensemble
+(inverse_op exists in `seabed_tiler.augment`), RF per-pixel baseline.
+
+## Per-pixel tree baseline (`seabed_forest`)
+
+A scikit-learn per-pixel classifier (Random Forest + HistGradientBoosting) on the same
+3 bands as the U-Net, for an interpretable, data-efficient comparison. CPU-only; runs in
+`.venv-train`. Each valid pixel is one `(backscatter, bathymetry, slope)` sample; invalid
+pixels (background + feature-nodata/NaN) are masked, and train pixels are deduped to undo
+the 50% tile overlap. Trains on base `_rot` tiles only — augmentation is a no-op for a
+context-free per-pixel model. Includes polygon6, so it trains on five surveys.
+
+```bash
+export PYTHONPATH=tiling/src:training/src
+.venv-train/bin/python -m seabed_forest.train    --config training/config/forest_3band.yaml
+.venv-train/bin/python -m seabed_forest.evaluate --config training/config/forest_3band.yaml
+.venv-train/bin/python -m seabed_forest.predict  --config training/config/forest_3band.yaml --polygon polygon4
+.venv-train/bin/python -m seabed_forest.crossval --config training/config/forest_3band.yaml
+# live multi-model viewer: RF + HGB (raw vs spatial) AND the U-Net, all tile by tile
+.venv-train/bin/python -m seabed_forest.watch    --config training/config/forest_3band.yaml --polygon polygon4
+```
+
+`seabed_forest.watch` is a multi-model live viewer. Each model is a "family" that normalizes
+with its OWN stats: RF/HGB use the forest run's stats, the U-Net uses its own checkpoint +
+stats (`runs/unet_3band`). Top row = the current tile's bands + each family's tile
+classification; bottom grid (wrapped to ≤3 columns) = a full-polygon map per
+(family × {raw, spatial}) plus ground truth, filling in live — five maps by default
+(RF raw, RF spatial, HGB raw, HGB spatial, U-Net) + truth. Flags: `--models` (subset the
+tree kinds), `--no-spatial` (drop the tree spatial columns), `--unet-config` (default
+`experiment_3band.yaml`), `--no-unet` (trees only), `--delay` (seconds/tile), `--save`
+(half-res GIF → `runs/<name>/maps/<polygon>_watch_multi.gif`). Run it in a desktop terminal
+(needs a GUI backend, not `Agg`); startup loads the ~3 GB RF model + the U-Net checkpoint, so
+the window takes a few seconds. The U-Net is 4-survey, so on polygon6 it self-normalizes.
+
+Outputs land in `training/runs/<name>/`: `model_<kind>.joblib`, `normalization_stats.json`,
+`metrics_<kind>.json`, `feature_importance_<kind>.{csv,png}`, `comparison.{csv,md}`
+(RF vs HGB vs an indicative U-Net reference row), and `maps/<polygon>_pred_<kind>.{tif,jpg}`.
+LOPO summaries go to `training/runs/<name>_lopo/summary_<kind>.json`. Because the forest
+trains on five surveys while the U-Net numbers above are on four, the U-Net reference row is
+indicative, not a strict head-to-head.
+
+### Results (seed 42, 5 surveys, 517,802 deduped train pixels)
+
+| protocol | model | macro-Dice | OA | κ | rock | shallow_rock | sand |
+|--|--|--|--|--|--|--|--|
+| blocks (dev) | random_forest | 0.715 | 0.741 | 0.500 | 0.899 | 0.445 | 0.802 |
+| blocks (dev) | hist_grad_boost | **0.730** | 0.765 | 0.532 | 0.904 | 0.461 | 0.824 |
+| blocks (dev) | U-Net (4-survey ref) | 0.784 | 0.782 | 0.599 | — | — | — |
+| LOPO | random_forest | 0.537 ± 0.108 | 0.592 ± 0.176 | — | 0.779 | 0.313 | 0.518 |
+| LOPO | hist_grad_boost | 0.537 ± 0.118 | 0.598 ± 0.188 | — | 0.793 | 0.302 | 0.515 |
+| LOPO | U-Net (4-survey ref) | **0.608 ± 0.084** | 0.710 ± 0.121 | — | 0.841 | 0.371 | 0.612 |
+
+**Reading.** On the same three raw bands the per-pixel trees do **not** beat the U-Net on
+either protocol (HGB edges RF). They give strong rock (≈0.90 dev / ≈0.79 LOPO) and sand
+separability and competitive OA, but lacking spatial context they trail on macro-Dice, and
+shallow_rock — the contextual, depth-defined class — collapses cross-survey (LOPO dice 0.02–0.05
+on the polygon5/polygon6 folds). Feature importance ranks bathymetry first (RF 0.40 / HGB 0.29),
+then backscatter, then slope. The accuracy ceiling is **not** raised by a model swap on these
+inputs: the real levers are engineered/multi-scale features or more annotated shallow_rock area.
+The U-Net rows are indicative (4 surveys, no polygon6), not a strict head-to-head. RF models are
+~3 GB each (300 unbounded trees over ~0.5 M pixels); HGB is ~1 MB.
+
+### Spatial regularization (Option C)
+
+A per-pixel classifier has no spatial context. `seabed_forest.spatial` regularizes the
+**assembled posterior** (the cross-tile-blended probability field from `MapAccumulator`,
+before argmax) with an edge-aware **guided filter** (He, Sun & Tang 2013) guided by the
+bathymetry band — smoothing salt-and-pepper while preserving depth boundaries. Pure
+numpy/scipy, no new deps (a dense CRF was excluded: `pydensecrf` is uninstallable here).
+Config: `forest.spatial` (`enabled`, `radius`, `eps`, `guide_band`). Maps:
+`predict --spatial`; comparison: `eval_spatial`; cross-survey: `crossval` (writes
+`spatial_summary_<kind>.json`). Evaluation samples each North-up map back to the test tiles,
+scoring the raw-argmax map vs the regularized map on **identical pixels**, so the delta is
+purely the spatial effect.
+
+| protocol | model | mDice raw → spatial | OA raw → spatial | rock | shallow_rock | sand |
+|--|--|--|--|--|--|--|
+| blocks (dev) | random_forest | 0.728 → **0.739** | 0.753 → 0.761 | 0.906→0.908 | 0.465→0.493 | 0.811→0.816 |
+| blocks (dev) | hist_grad_boost | 0.733 → **0.743** | 0.768 → 0.776 | 0.907→0.908 | 0.465→0.488 | 0.827→0.832 |
+| LOPO | random_forest | 0.542 → **0.559** | 0.600 → 0.626 | 0.795→0.831 | 0.311→0.314 | 0.521→0.532 |
+| LOPO | hist_grad_boost | 0.541 → **0.547** | 0.605 → 0.622 | 0.806→0.833 | 0.301→0.295 | 0.515→0.514 |
+
+**Reading.** Guided-filter regularization gives a **small but consistent** macro-Dice lift —
+dev ≈ +0.01, LOPO RF +0.017 / HGB +0.006 — and a larger OA gain, driven mainly by **rock**
+(LOPO rock dice ≈ +0.035) and cleaner maps. It is essentially free (no extra training,
+scipy-only, runs on the existing posterior). The biggest single win is the polygon1 LOPO fold
+(RF 0.596 → 0.650). Honest limits: regularization *reinforces existing signal but cannot
+manufacture context the model never captured* — on the near-zero-signal shallow_rock folds
+(polygon5/6) smoothing nudges that rare class to ~0, and the lift does **not** close the gap to
+the U-Net's LOPO 0.608 (best tree+spatial = RF 0.559). So spatial regularization is a worthwhile,
+cheap improvement to the tree baseline, but the headline conclusion stands: on these 3 raw bands
+the real levers are engineered/multi-scale features or more annotated shallow_rock area.
+(Note: RF spatial LOPO needs ~5–7 GB per fold transiently; use `crossval --prune-models` to
+delete each fold's RF after scoring, and `--models hist_gradient_boosting` for a disk-frugal run.)
+
+## Honest expectations
+
+The labeled area (~1–2 km² across four surveys) is two orders of magnitude smaller
+than the reference paper's training set (Garone et al. 2023, 576 km²). These runs
+establish a reproducible baseline and a working pipeline, not a production
+classifier. The highest-value upgrade is new annotated survey polygons, not more
+tuning (see "Honest accounting" in `docs/DATA_AUGMENTATION.md`).

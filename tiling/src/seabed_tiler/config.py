@@ -55,6 +55,8 @@ class LabelsConfig(BaseModel):
     class_files: dict[str, list[str]] | None = None
     priority: list[str] | None = None
     polygonize: bool = False
+    # Snap LineString rings left open by up to this many meters (0 = exact only).
+    close_tolerance_m: float = 0.0
 
 
 class FiltersConfig(BaseModel):

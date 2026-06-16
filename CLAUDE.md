@@ -63,6 +63,28 @@ $env:PYTHONPATH="tiling\src"; .venv\Scripts\python -m seabed_tiler.stitch --tile
 .venv\Scripts\python -m pytest tiling\tests\test_grid.py::test_stride_is_half_tile_gives_50pct_overlap -q
 ```
 
+## U-Net Training (`training/`)
+
+Separate package + separate venv (`.venv-train`, Python 3.12 + torch 2.2.2 — torch has no
+macOS x86_64 wheels past 2.2.x and none for 3.14). See `training/README.md` for full docs.
+
+```bash
+export PYTHONPATH=tiling/src:training/src
+.venv-train/bin/python -m seabed_unet.train    --config training/config/experiment_3band.yaml
+.venv-train/bin/python -m seabed_unet.evaluate --config training/config/experiment_3band.yaml
+.venv-train/bin/python -m seabed_unet.predict  --config training/config/experiment_3band.yaml --polygon polygon4
+.venv-train/bin/python -m pytest training/tests -q
+```
+
+Key rules (from `docs/DATA_AUGMENTATION.md`, enforced in code): whole-polygon spatial
+splits only; `_rotaug` + D4 augmentation are train-only; loss/metrics ignore background
+(label 0) and feature-invalid pixels; per-polygon self-normalization bridges the
+backscatter domain shift. Outputs land in `training/runs/<experiment>/` (gitignored).
+
+A scikit-learn per-pixel tree baseline lives in `training/src/seabed_forest/` (RF +
+HistGradientBoosting, CPU, same 3 bands, reuses `seabed_unet`'s data/normalize/metrics).
+See `training/README.md`.
+
 ## Architecture
 
 ### Data
@@ -85,7 +107,7 @@ Classes: `rock=1`, `shallow_rock=2`, `sand=3`, `background=0` (unlabeled).
 
 **Labels** (`labels.py`): Two rasterization strategies controlled by `labels.kind`:
 - `shapefile` (polygon1): one file, class inferred from a NAME field via ordered regex rules (shallow before rock to avoid misclassification).
-- `shapefile_per_class` (polygons 3/4/5): one shapefile per class, burned in priority order so rock wins on overlap. `polygonize: true` closes LineString rings before rasterizing.
+- `shapefile_per_class` (polygons 3/4/5): one shapefile per class, burned in priority order so rock wins on overlap. `polygonize: true` closes LineString rings before rasterizing; `close_tolerance_m` snaps rings the annotator left open by up to that many meters (polygon3 uses 2.0 — its two largest annotations were open by 0.1–1.1 m and would otherwise be dropped).
 
 **Tiler** (`tiler.py`): `run_tiling()` iterates windows, filters by `min_valid_frac` and `require_label`, writes co-registered `tiles/features/*.tif` (multiband float32) and `tiles/labels/*.tif` (uint8), and returns manifest rows.
 

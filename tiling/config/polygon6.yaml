@@ -1,0 +1,42 @@
+# polygon6 — three measured .xyz bands (backscatter dB, bathymetry m, slope deg), all
+# native 1 m. Labels are per-class Polygon shapefiles (Rock 112 / Sand 18 / Shallow_Rock 8);
+# classes may overlap, so priority resolves conflicts (rock wins). "Poly 6 inter.shp"
+# (survey-boundary rectangle) is intentionally excluded. Tile geometry inherited from default.yaml.
+
+name: polygon6
+src_dir: DataBase/Polygon6
+
+band_order: [backscatter, bathymetry, slope]
+
+layers:
+  - name: backscatter
+    kind: xyz
+    path: "Poly 6 inter_Backscatter.xyz"
+    native_res_m: 1.0
+
+  - name: bathymetry
+    kind: xyz
+    path: "Poly 6 inter_Bathymetry.xyz"
+    native_res_m: 1.0
+    cmap: summer
+    hillshade: true
+    vert_exag: 5.0
+
+  - name: slope
+    kind: xyz
+    path: "Poly 6 inter_Slope_1m.xyz"
+    native_res_m: 1.0
+    cmap: YlOrRd
+
+labels:
+  kind: shapefile_per_class
+  polygonize: false
+  classes:
+    rock: 1
+    shallow_rock: 2
+    sand: 3
+  priority: [sand, shallow_rock, rock]
+  class_files:
+    rock: ["Poly 6 inter_Rock.shp"]
+    shallow_rock: ["Poly 6 inter_Shallow_Rock.shp"]
+    sand: ["Poly 6 inter_Sand.shp"]
