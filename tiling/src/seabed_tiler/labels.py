@@ -5,7 +5,10 @@ Two label encodings are supported (see ``LabelsConfig.kind``):
 * ``shapefile`` (polygon1) — one file whose noisy NAME field (mixed case, stray spaces,
   e.g. ``"Class 2-  shallow rock"`` vs ``"class2 -shallow rock"``) is normalized and
   matched against ordered regex rules; "shallow" is matched before "rock" so shallow
-  rock is not swallowed by the rock rule.
+  rock is not swallowed by the rock rule. Geometry is repaired (``make_valid``) and
+  classes are burned in ``priority`` order so a higher-priority class wins on overlap
+  (rock, the rarest class, must not be overwritten); features whose NAME matches no
+  rule are logged, never dropped silently.
 * ``shapefile_per_class`` (polygons 3/4/5) — one or more shapefiles per class, burned in
   priority order so a higher-priority class wins on overlap. LineString labels
   (polygon3) are closed into polygons first; features that cannot form an area are
@@ -94,6 +97,43 @@ def _feature_to_polygons(geom, polygonize: bool, close_tolerance_m: float = 0.0)
     return []
 
 
+def _group_shapefile_features(features, rules, classes) -> tuple[dict[int, list], list]:
+    """Classify, repair, and group ``(name, geom)`` features by class id.
+
+    Returns ``(by_class, unmatched)`` where ``by_class`` maps a class id to its list
+    of repaired polygons and ``unmatched`` lists the NAMEs that matched no rule (so
+    the caller can report them instead of dropping them silently). Geometry is
+    repaired with the same ``_feature_to_polygons`` helper the per-class path uses.
+    """
+    by_class: dict[int, list] = {}
+    unmatched: list = []
+    for name, geom in features:
+        if geom is None or geom.is_empty:
+            continue
+        class_id = classify(name, rules, classes)
+        if class_id is None:
+            unmatched.append(name)
+            continue
+        polys = _feature_to_polygons(geom, polygonize=False)
+        if polys:
+            by_class.setdefault(class_id, []).extend(polys)
+    return by_class, unmatched
+
+
+def _ordered_shapes(by_class, classes, priority) -> list[tuple]:
+    """Flatten grouped polygons into ``(geom, class_id)`` pairs in burn order.
+
+    Classes are emitted low -> high ``priority`` so the highest-priority class is
+    rasterized last and wins on overlap (rasterize lets later shapes overwrite
+    earlier ones). ``priority`` is a list of class names.
+    """
+    shapes: list[tuple] = []
+    for class_name in priority:
+        class_id = classes[class_name]
+        shapes.extend((p, class_id) for p in by_class.get(class_id, []))
+    return shapes
+
+
 def build_label_per_class(cfg: Config, transform, crs, shape) -> np.ndarray:
     """Rasterize per-class shapefiles, burning classes in priority order (low -> high)."""
     nodata = cfg.output.label_nodata
@@ -149,14 +189,21 @@ def build_label_array(cfg: Config, transform, crs, shape) -> np.ndarray:
 
     field = cfg.labels.name_field
     nodata = cfg.output.label_nodata
+    classes = cfg.labels.classes
+    priority = cfg.labels.priority or list(classes)
 
-    shapes = []
-    for geom, name in zip(gdf.geometry, gdf[field]):
-        if geom is None or geom.is_empty:
-            continue
-        class_id = classify(name, cfg.labels.rules, cfg.labels.classes)
-        if class_id is not None:
-            shapes.append((geom, class_id))
+    by_class, unmatched = _group_shapefile_features(
+        zip(gdf[field], gdf.geometry), cfg.labels.rules, classes
+    )
+    if unmatched:
+        logger.warning(
+            "    [unmatched] %d feature(s) with %s matching no rule, dropped to background: %s",
+            len(unmatched), field, sorted({str(n) for n in unmatched}),
+        )
+
+    # Burn classes low -> high priority so the highest-priority class (rock) wins on
+    # overlap. rasterize burns shapes in order; later shapes overwrite earlier ones.
+    shapes = _ordered_shapes(by_class, classes, priority)
 
     if not shapes:
         return np.full(shape, nodata, dtype=np.uint8)

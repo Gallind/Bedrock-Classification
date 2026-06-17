@@ -42,9 +42,16 @@ labels:
     rock: 1
     shallow_rock: 2
     sand: 3
+  # Burn order (low -> high): rock wins on overlap, matching the per-class convention.
+  # The default (classes order) would burn rock first and let sand/shallow overwrite it.
+  priority: [sand, shallow_rock, rock]
   # Rules are applied IN ORDER to the normalized NAME (lowercased, whitespace collapsed).
   # "shallow" must come before "rock" so "shallow rock" is not caught by the rock rule.
   rules:
     - {pattern: "shallow", class: shallow_rock}
     - {pattern: "rock",    class: rock}
     - {pattern: "sand",    class: sand}
+    # One feature's class name was overwritten by its area string; it sits among the
+    # rock blobs, so recover it as rock (raw shapefile is read-only). Exact literal so
+    # it cannot capture other annotations.
+    - {pattern: "0\\.00501 sq km", class: rock}

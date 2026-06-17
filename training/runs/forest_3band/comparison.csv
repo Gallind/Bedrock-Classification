@@ -1,0 +1,4 @@
+model,macro_dice,overall_accuracy,cohens_kappa,dice_rock,dice_shallow_rock,dice_sand
+random_forest,0.716,0.741,0.502,0.900,0.445,0.802
+hist_gradient_boosting,0.728,0.764,0.531,0.906,0.456,0.823
+unet_3band_reference,0.784,0.782,0.599,—,—,—
