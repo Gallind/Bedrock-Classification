@@ -7,7 +7,13 @@ import pytest
 from shapely.geometry import LineString, Polygon
 
 from seabed_tiler.config import LabelRule
-from seabed_tiler.labels import _feature_to_polygons, classify, normalize_name
+from seabed_tiler.labels import (
+    _feature_to_polygons,
+    _group_shapefile_features,
+    _ordered_shapes,
+    classify,
+    normalize_name,
+)
 
 CLASSES = {"rock": 1, "shallow_rock": 2, "sand": 3}
 RULES = [
@@ -106,3 +112,43 @@ def test_exactly_closed_ring_unaffected_by_tolerance():
     )
     assert len(polys) == 1
     assert polys[0].area == pytest.approx(100.0)
+
+
+# Shapefile path (polygon1): classify + group, then burn in priority order.
+# Recovers the feature whose class name was overwritten by its area string.
+RULES_WITH_AREA_FALLBACK = RULES + [LabelRule(pattern=r"0\.00501 sq km", **{"class": "rock"})]
+PRIORITY = ["sand", "shallow_rock", "rock"]  # rock wins on overlap
+
+
+def test_group_classifies_repairs_and_groups():
+    feats = [
+        ("Class 1- rock", Polygon(SQUARE)),
+        ("class 3 - sand", Polygon(SQUARE)),
+        ("Class 2- shallow rock", Polygon(SQUARE)),
+    ]
+    by_class, unmatched = _group_shapefile_features(feats, RULES, CLASSES)
+    assert unmatched == []
+    assert set(by_class) == {1, 2, 3}
+    assert all(len(v) == 1 for v in by_class.values())
+
+
+def test_group_reports_unmatched_name_instead_of_dropping_silently():
+    feats = [("seagrass meadow", Polygon(SQUARE)), ("Class 1- rock", Polygon(SQUARE))]
+    by_class, unmatched = _group_shapefile_features(feats, RULES, CLASSES)
+    assert unmatched == ["seagrass meadow"]
+    assert set(by_class) == {1}  # only the rock feature grouped
+
+
+def test_group_area_string_rule_recovers_rock():
+    # NAME overwritten by area string; the fallback rule maps it to rock.
+    feats = [("0.00501 sq km", Polygon(SQUARE))]
+    by_class, unmatched = _group_shapefile_features(feats, RULES_WITH_AREA_FALLBACK, CLASSES)
+    assert unmatched == []
+    assert set(by_class) == {1}
+
+
+def test_priority_burn_order_lets_rock_win_on_overlap():
+    # rock + shallow over the same area; rock must be burned LAST so it overwrites.
+    by_class = {2: [Polygon(SQUARE)], 1: [Polygon(SQUARE)]}
+    shapes = _ordered_shapes(by_class, CLASSES, PRIORITY)
+    assert shapes[-1][1] == CLASSES["rock"]  # rock burned last == wins on overlap
