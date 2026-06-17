@@ -216,7 +216,15 @@ grey = unlabeled/no-coverage):
 |:---:|:---:|:---:|
 | ![truth](reports/classified_maps/polygon1/polygon1__ground_truth__t128m_o50pct_r1m.png) | ![unet](reports/classified_maps/polygon1/polygon1__unet__experiment_3band__t128m_o50pct_r1m.png) | ![rf-spatial](reports/classified_maps/polygon1/polygon1__random_forest_spatial__forest_3band__t128m_o50pct_r1m.png) |
 
-Per-polygon tile-by-tile viewer animations live in
+Live multi-model viewer (`seabed_forest.watch`) on **polygon3** — top row is the current
+tile's input bands and each family's per-tile prediction; the grid below is each family's
+full-polygon map filling in tile by tile (RF, HGB, their guided-spatial variants, U-Net,
+and ground truth):
+
+<img src="reports/watch_gifs/polygon3_watch_multi.gif" alt="Multi-model watch — polygon3" width="800">
+
+
+The remaining per-polygon animations live in
 [`reports/watch_gifs/`](reports/watch_gifs/); the full per-model map set is in
 [`reports/classified_maps/`](reports/classified_maps/). See
 [`reports/README.md`](reports/README.md) for the complete report.
