@@ -1,5 +1,5 @@
 variant,macro_dice,overall_accuracy,cohens_kappa,dice_rock,dice_shallow_rock,dice_sand
-random_forest_map_raw,0.728,0.753,0.520,0.906,0.465,0.811
-random_forest_map_spatial,0.739,0.761,0.537,0.908,0.493,0.816
-hist_gradient_boosting_map_raw,0.733,0.768,0.538,0.907,0.465,0.827
-hist_gradient_boosting_map_spatial,0.743,0.776,0.553,0.908,0.488,0.832
+random_forest_map_raw,0.728,0.754,0.523,0.909,0.466,0.811
+random_forest_map_spatial,0.740,0.761,0.539,0.910,0.494,0.815
+hist_gradient_boosting_map_raw,0.733,0.768,0.539,0.908,0.466,0.825
+hist_gradient_boosting_map_spatial,0.742,0.775,0.552,0.909,0.486,0.830
