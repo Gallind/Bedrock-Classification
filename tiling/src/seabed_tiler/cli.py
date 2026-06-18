@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .align import build_grid_and_features
 from .config import load_config, validate_inputs
+from .io_utils import clean_run_dir
 from .labels import build_label_array
 from .logging_utils import add_file_handler, setup_logging
 from .manifest import write_grid_preview, write_manifest, write_rotated_manifest
@@ -48,6 +49,7 @@ def main(argv=None) -> None:
     validate_inputs(cfg)
 
     setup_logging()
+    clean_run_dir(cfg.out_dir)
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
     add_file_handler(cfg.out_dir / "tiling.log")  # also covers --rotated/--augment stages
 
