@@ -78,23 +78,23 @@ const Rule: React.FC<{ children: React.ReactNode; delay: number }> = ({ children
 export const S05_Augment: React.FC = () => (
   <SceneFrame>
     <Eyebrow>Methods rigor · the augmentation contract</Eyebrow>
-    <Heading size={60}>Pixels are physical measurements — so the rules are strict</Heading>
+    <Heading size={60}>Pixels are physical measurements, so the rules are strict</Heading>
 
     <div style={{ display: "flex", gap: 30, marginTop: 36 }}>
-      <Column title="Allowed — rigid geometry" color={COLORS.good} delay={12}>
+      <Column title="Allowed: rigid geometry" color={COLORS.good} delay={12}>
         <Item ok delay={20}>The eight D4 rotations & flips</Item>
         <Item ok delay={26}>Genuine re-extraction from the source raster</Item>
       </Column>
-      <Column title="Forbidden — photometric" color="#e06a6a" delay={16}>
+      <Column title="Forbidden: photometric" color="#e06a6a" delay={16}>
         <Item ok={false} delay={22}>Brightness / contrast shifts</Item>
-        <Item ok={false} delay={28}>Noise, blur, zoom — they corrupt the physics</Item>
+        <Item ok={false} delay={28}>Noise, blur, zoom: they corrupt the physics</Item>
       </Column>
     </div>
 
     <div style={{ display: "flex", gap: 20, marginTop: "auto" }}>
-      <Rule delay={36}>Spatial splits only — overlapping tiles would leak train↔test</Rule>
+      <Rule delay={36}>Spatial splits only, so overlapping tiles never leak train to test</Rule>
       <Rule delay={42}>Loss & metrics ignore no-data and background pixels</Rule>
-      <Rule delay={48}>Backscatter normalised per survey — bridges the domain shift</Rule>
+      <Rule delay={48}>Backscatter normalised per survey, bridging the domain shift</Rule>
     </div>
   </SceneFrame>
 );

@@ -104,7 +104,7 @@ export const S04_Modes: React.FC = () => (
       </ModeCard>
       <ModeCard
         title="Rotated"
-        sub="grid aligned to the annotation bounding box — follows the survey"
+        sub="grid aligned to the annotation bounding box, follows the survey"
         count="252 tiles"
         delay={18}
       >

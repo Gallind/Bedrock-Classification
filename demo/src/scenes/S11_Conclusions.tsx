@@ -44,12 +44,12 @@ export const S11_Conclusions: React.FC = () => {
       <div style={{ flex: 1, display: "flex", gap: 50, marginTop: 30, minHeight: 0 }}>
         <div style={{ flex: "1 1 0" }}>
           <Bullet delay={12} color={COLORS.rock}>
-            Rock classification is reliable across surveys — useful for hazard and
+            Rock classification is reliable across surveys, useful for hazard and
             habitat mapping.
           </Bullet>
           <Bullet delay={18} color={COLORS.shallow}>
-            Shallow rock is not yet there — defined partly by depth, and we simply
-            have very little of it.
+            Shallow rock is the next frontier: defined partly by depth, and we
+            simply have very little of it labelled.
           </Bullet>
           <Bullet delay={24} color={COLORS.accent}>
             More gains will come from more labelled data than from a bigger model.
@@ -82,7 +82,7 @@ export const S11_Conclusions: React.FC = () => {
               style={{ width: 200, height: 120, flex: "none" }}
             />
             <span style={{ fontSize: 26, color: COLORS.textDim }}>
-              candidate 4th band — hillshade
+              candidate 4th band: hillshade
             </span>
           </div>
         </div>

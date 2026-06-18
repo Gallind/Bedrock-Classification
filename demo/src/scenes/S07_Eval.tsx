@@ -105,14 +105,14 @@ const Poly: React.FC<{ label: string; test?: boolean }> = ({ label, test }) => (
 export const S07_Eval: React.FC = () => (
   <SceneFrame>
     <Eyebrow>How we evaluate</Eyebrow>
-    <Heading size={62}>Two protocols — one optimistic, one honest</Heading>
+    <Heading size={62}>Two protocols: one optimistic, one honest</Heading>
 
     <div style={{ flex: 1, display: "flex", gap: 30, marginTop: 30, minHeight: 0 }}>
       <Panel
         title="Within-survey"
         tag="dev / optimistic"
         tagColor={COLORS.accent}
-        desc="Each survey is carved into train, validation and test bands with buffers — no pixel is shared."
+        desc="Each survey is carved into train, validation and test bands with buffers, so no pixel is shared."
         delay={12}
       >
         <div style={{ display: "flex", gap: 14, width: 420, height: 200 }}>
@@ -126,7 +126,7 @@ export const S07_Eval: React.FC = () => (
         title="Leave-one-polygon-out"
         tag="LOPO / honest"
         tagColor={COLORS.accent2}
-        desc="Train on three surveys, predict the fourth, repeat — does it generalise to a survey it has never seen?"
+        desc="Train on three surveys, predict the fourth, repeat. Does it generalise to a survey it has never seen?"
         delay={20}
       >
         <div style={{ display: "flex", gap: 18, alignItems: "center" }}>

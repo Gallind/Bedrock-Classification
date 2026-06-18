@@ -2,8 +2,9 @@ import { staticFile } from "remotion";
 import { SCENES } from "./script";
 import { FPS } from "./theme";
 
-/** Silence padding added after each narration clip (seconds). */
-const PAD_SECONDS = 0.6;
+/** Silence padding added after each narration clip (seconds). Kept short so
+ * scenes cut on soon after the voiceover ends instead of lingering. */
+const PAD_SECONDS = 0.35;
 
 export type Manifest = Record<string, { seconds: number }>;
 

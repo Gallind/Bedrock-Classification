@@ -37,7 +37,7 @@ export const S10_Watch: React.FC = () => {
             }}
           >
             It&rsquo;s how we caught a labelling bug: two of the largest
-            annotations were silently dropped — and the map made it obvious.
+            annotations were silently dropped, and the map made it obvious.
           </div>
         </div>
       </div>

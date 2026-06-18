@@ -25,8 +25,8 @@ export const S02_Data: React.FC = () => (
 
     <Body size={34} delay={30}>
       Experts hand-draw the ground truth as polygons. But across four surveys we
-      have only <Highlight>~1–2 km² of labelled seabed</Highlight> — about 100×
-      less than the 576 km² reference of Garone et&nbsp;al. (2023) — and
+      have only <Highlight>~1-2 km² of labelled seabed</Highlight>, about 100×
+      less than the 576 km² reference of Garone et&nbsp;al. (2023). And
       backscatter is stored differently per survey, from raw decibels to
       grayscale: <Highlight color={COLORS.warn}>a real domain shift</Highlight>.
     </Body>

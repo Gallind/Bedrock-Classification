@@ -5,7 +5,7 @@ import { COLORS } from "../theme";
 
 /**
  * Animated GIF playback. A plain <img> does NOT animate during a headless
- * render — @remotion/gif decodes frames deterministically so the watch viewer
+ * render; @remotion/gif decodes frames deterministically so the watch viewer
  * actually moves in the final MP4.
  */
 export const AssetGif: React.FC<{

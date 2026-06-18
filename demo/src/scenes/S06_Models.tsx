@@ -46,14 +46,14 @@ export const S06_Models: React.FC = () => (
         <ModelCard
           title="U-Net"
           tag="≈ 1.9M params"
-          desc="A compact encoder–decoder that learns spatial context across each tile."
+          desc="A compact encoder-decoder that learns spatial context across each tile."
           color={COLORS.accent}
           delay={12}
         />
         <ModelCard
           title="Forest baselines"
           tag="RF · HGB"
-          desc="Random forest (300 trees) and gradient boosting — one pixel at a time, on CPU."
+          desc="Random forest (300 trees) and gradient boosting: one pixel at a time, on CPU."
           color={COLORS.accent2}
           delay={20}
         />
@@ -61,7 +61,7 @@ export const S06_Models: React.FC = () => (
 
       <div style={{ flex: "1 1 0", display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div style={{ fontSize: 28, color: COLORS.textDim, marginBottom: 14 }}>
-          Same three bands — depth carries the strongest signal:
+          Same three bands. Depth carries the strongest signal:
         </div>
         <AssetImage
           name="feature_importance.png"
