@@ -6,10 +6,19 @@ import { FPS } from "./theme";
  * scenes cut on soon after the voiceover ends instead of lingering. */
 const PAD_SECONDS = 0.35;
 
+/** Playback speed for the no-audio fallback. 2 = twice as fast (scenes half as
+ * long) so the silent demo lands near 2 min. Only the fallback is scaled — when
+ * a voiceover manifest exists, scenes re-time to the real spoken length so the
+ * narration is never clipped. */
+const FALLBACK_SPEED = 2;
+
 export type Manifest = Record<string, { seconds: number }>;
 
+const fallbackFrames = (estSeconds: number): number =>
+  Math.round((estSeconds * FPS) / FALLBACK_SPEED);
+
 export const estDurationsFrames = (): number[] =>
-  SCENES.map((s) => Math.round(s.estSeconds * FPS));
+  SCENES.map((s) => fallbackFrames(s.estSeconds));
 
 export const durationsFromManifest = (manifest: Manifest | null): number[] =>
   SCENES.map((s) => {
@@ -17,7 +26,7 @@ export const durationsFromManifest = (manifest: Manifest | null): number[] =>
     if (m && m.seconds > 0) {
       return Math.ceil((m.seconds + PAD_SECONDS) * FPS);
     }
-    return Math.round(s.estSeconds * FPS);
+    return fallbackFrames(s.estSeconds);
   });
 
 export const audioScenesFromManifest = (manifest: Manifest | null): string[] =>
