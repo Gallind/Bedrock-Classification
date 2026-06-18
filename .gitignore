@@ -18,6 +18,15 @@ __pycache__/
 env
 
 #####################
+# REMOTION DEMO (generated)
+#####################
+demo/node_modules/
+demo/out/
+demo/.env
+demo/public/audio/
+demo/public/assets/
+
+#####################
 # AI
 #####################
 .serena
