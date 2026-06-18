@@ -1,6 +1,15 @@
 import type { SceneSpec } from "./types";
-import { makePlaceholder } from "./components/Placeholder";
 import { S01_Intro } from "./scenes/S01_Intro";
+import { S02_Data } from "./scenes/S02_Data";
+import { S03_Pipeline } from "./scenes/S03_Pipeline";
+import { S04_Modes } from "./scenes/S04_Modes";
+import { S05_Augment } from "./scenes/S05_Augment";
+import { S06_Models } from "./scenes/S06_Models";
+import { S07_Eval } from "./scenes/S07_Eval";
+import { S08_Results } from "./scenes/S08_Results";
+import { S09_Maps } from "./scenes/S09_Maps";
+import { S10_Watch } from "./scenes/S10_Watch";
+import { S11_Conclusions } from "./scenes/S11_Conclusions";
 import { S12_Outro } from "./scenes/S12_Outro";
 
 // The ordered storyboard. `narration` is the single source for the ElevenLabs
@@ -20,7 +29,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "data",
-    Component: makePlaceholder("The data: three physical bands"),
+    Component: S02_Data,
     estSeconds: 28,
     narration:
       "Every survey gives us three physical layers on a one-metre grid. " +
@@ -35,7 +44,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "pipeline",
-    Component: makePlaceholder("The pipeline: align, label, tile"),
+    Component: S03_Pipeline,
     estSeconds: 24,
     narration:
       "The pipeline is deterministic and config-driven. Every layer is " +
@@ -47,7 +56,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "modes",
-    Component: makePlaceholder("Three tiling modes"),
+    Component: S04_Modes,
     estSeconds: 22,
     narration:
       "Tiles are produced in three modes. The standard grid is axis-aligned. " +
@@ -58,7 +67,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "augment",
-    Component: makePlaceholder("The augmentation contract"),
+    Component: S05_Augment,
     estSeconds: 30,
     narration:
       "Because the pixels are physical measurements, augmentation follows a " +
@@ -72,7 +81,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "models",
-    Component: makePlaceholder("Two model families"),
+    Component: S06_Models,
     estSeconds: 24,
     narration:
       "We compare two model families on the same three bands. A compact " +
@@ -84,7 +93,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "eval",
-    Component: makePlaceholder("How we evaluate"),
+    Component: S07_Eval,
     estSeconds: 22,
     narration:
       "We evaluate two ways. The development split carves each survey into " +
@@ -95,7 +104,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "results",
-    Component: makePlaceholder("Results"),
+    Component: S08_Results,
     estSeconds: 32,
     narration:
       "The results are clear. The three-band U-Net reaches a macro-Dice of " +
@@ -108,7 +117,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "maps",
-    Component: makePlaceholder("Classified maps"),
+    Component: S09_Maps,
     estSeconds: 22,
     narration:
       "Seen as full maps, the story holds. Against the ground truth, the " +
@@ -119,7 +128,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "watch",
-    Component: makePlaceholder("The pipeline, live"),
+    Component: S10_Watch,
     estSeconds: 24,
     narration:
       "This is the pipeline running tile by tile. Each frame shows the input " +
@@ -129,7 +138,7 @@ export const SCENES: SceneSpec[] = [
   },
   {
     id: "conclusions",
-    Component: makePlaceholder("Conclusions & future work"),
+    Component: S11_Conclusions,
     estSeconds: 26,
     narration:
       "So where does this land? Rock classification is reliable enough to be " +
