@@ -1,0 +1,30 @@
+{
+  "name": "seabed-classification-demo",
+  "version": "1.0.0",
+  "description": "Remotion demo video for the IOLR seabed (bedrock) classification pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "copy-assets": "node scripts/copy-assets.mjs",
+    "voiceover": "node scripts/generate-voiceover.mjs",
+    "render": "remotion render SeabedDemo out/seabed-demo.mp4",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/gif": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "dotenv": "^16.4.5",
+    "music-metadata": "^10.0.0",
+    "typescript": "^5.4.5"
+  }
+}
