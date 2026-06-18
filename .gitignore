@@ -34,6 +34,14 @@ demo/public/assets/
 #####################
 .serena
 .claude
-CLAUDE.md
-ML_MODEL_DISCUSSION.md
+**/CLAUDE*.md
+ML_MODEL*.md
 superpowers/
+
+#####################
+# PLANNING / NON-SHIPPED DOCS
+#####################
+project-overview.md
+DEVELOPER_GUIDE.md
+Seabed_Mapping_Pipeline.pdf
+Seafloor_Classification_Guidelines_for_Students.pdf

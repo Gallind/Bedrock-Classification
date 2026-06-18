@@ -346,8 +346,6 @@ DL_article.pdf           reference paper (Garone et al., 2023)
 | [`docs/TRAINING_DATA_SETUP.md`](docs/TRAINING_DATA_SETUP.md) | regenerating the tile dataset |
 | [`docs/UNET_RETRAIN_RTX4050.md`](docs/UNET_RETRAIN_RTX4050.md) | U-Net retrain on the corrected labels |
 | [`demo/README.md`](demo/README.md) | narrated Remotion walkthrough video — build & render `out/seabed-demo.mp4` |
-| [`CLAUDE.md`](CLAUDE.md) | architecture reference & conventions |
-| [`project-overview.md`](project-overview.md) | original research brief |
 
 ---
 
