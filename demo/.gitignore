@@ -1,5 +1,6 @@
 node_modules/
-out/
+out/*
+!out/seabed-demo.mp4
 .env
 public/audio/
 public/assets/

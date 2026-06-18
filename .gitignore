@@ -21,7 +21,8 @@ env
 # REMOTION DEMO (generated)
 #####################
 demo/node_modules/
-demo/out/
+demo/out/*
+!demo/out/seabed-demo.mp4
 demo/.env
 demo/public/audio/
 demo/public/assets/
