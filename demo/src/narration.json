@@ -1,62 +1,62 @@
 [
   {
     "id": "intro",
-    "estSeconds": 19,
-    "narration": "Mapping the seafloor by hand is slow and inconsistent. With the Israel Oceanographic and Limnological Research institute, we built a pipeline that turns multibeam sonar surveys from the research vessel Bat-Galim into per-pixel maps of three seabed types: rock, shallow rock, and sand. Automatically, and reproducibly."
+    "estSeconds": 13,
+    "narration": "Mapping the seafloor by hand is slow and inconsistent. With Israel's Oceanographic and Limnological Research institute, we built a pipeline turning multibeam sonar into per-pixel maps of rock, shallow rock, and sand."
   },
   {
     "id": "data",
-    "estSeconds": 28,
-    "narration": "Every survey gives us three physical layers on a one-metre grid. Bathymetry is depth. Backscatter measures how acoustically hard the seafloor is. Slope is steepness. Marine geologists hand-draw the ground truth as polygons. But there's a catch. Across four surveys we have only one to two square kilometres of labelled seabed, about a hundred times less than the reference study. And backscatter is stored differently per survey, from raw decibels to grayscale images: a real domain shift the model has to survive."
+    "estSeconds": 13,
+    "narration": "Each survey gives three physical layers: depth, backscatter hardness, and slope. Experts hand-draw the ground truth. But we have only one to two square kilometres of labels, with backscatter that varies per survey."
   },
   {
     "id": "pipeline",
-    "estSeconds": 21,
-    "narration": "The pipeline is deterministic and config-driven. Every layer is reprojected onto one shared grid in UTM zone 36 north. The expert polygons are rasterised into per-pixel labels. Then each survey is cut into overlapping tiles, 128 metres square at one metre per pixel, so every tile carries a three-band feature stack and a matching label."
+    "estSeconds": 10,
+    "narration": "The pipeline is deterministic: every layer reprojected onto one shared grid, expert polygons turned into labels, and each survey cut into overlapping 128-metre tiles."
   },
   {
     "id": "modes",
-    "estSeconds": 18,
-    "narration": "Tiles come in three modes. The standard grid is axis-aligned. The rotated grid follows the annotations, not the compass. And an augmentation mode re-extracts that rotated grid at jittered angles and offsets, turning roughly 250 base tiles into over 900 for training."
+    "estSeconds": 9,
+    "narration": "Tiles come in three modes: standard, rotated to follow the annotations, and an augmentation pass turning 250 base tiles into over 900."
   },
   {
     "id": "augment",
-    "estSeconds": 26,
-    "narration": "Because the pixels are physical measurements, augmentation follows a strict contract. Only rigid geometry is allowed: rotations, flips, and genuine re-extraction. Brightness, noise, and zoom are forbidden; they would corrupt the physics. Splits are spatial only, never random, because overlapping tiles would leak between train and test. The loss ignores no-data pixels. And backscatter is normalised per survey, which bridges that domain shift."
+    "estSeconds": 10,
+    "narration": "Because pixels are physical measurements, augmentation is rigid only: rotations and flips, never brightness or noise. Splits are spatial, and backscatter is normalised per survey."
   },
   {
     "id": "models",
-    "estSeconds": 21,
-    "narration": "We compare two model families on the same three bands. A compact U-Net, about 1.9 million parameters, learns spatial context. Against it, per-pixel tree baselines: a random forest and gradient boosting, which see one pixel at a time. Feature importance confirms the intuition: depth carries the strongest signal, then backscatter, then slope."
+    "estSeconds": 11,
+    "narration": "We compare two families on the same bands: a compact U-Net that learns spatial context, and per-pixel tree baselines that see one pixel at a time."
   },
   {
     "id": "eval",
-    "estSeconds": 21,
-    "narration": "We evaluate two ways. The development split carves each survey into separate train, validation, and test bands with buffers, so no pixel is shared. The honest test is leave-one-polygon-out: train on three surveys, predict the fourth, and repeat. That measures whether the model generalises to a survey it has never seen."
+    "estSeconds": 9,
+    "narration": "The honest test is leave-one-polygon-out: train on three surveys, predict the fourth, and repeat. It measures generalisation to a survey never seen."
   },
   {
     "id": "results",
-    "estSeconds": 24,
-    "narration": "The results are strong. The three-band U-Net reaches a macro-Dice of 0.78 within surveys, and 0.61 across unseen surveys, beating the two-band variant and the tree baselines on every metric. Rock is the standout: robust everywhere, and on the strongest survey its cross-survey Dice climbs to 0.98. Sand follows closely. The model maps the hard substrate that matters most for hazard and habitat work."
+    "estSeconds": 15,
+    "narration": "The results are strong. The three-band U-Net reaches a macro-Dice of 0.78 within surveys and 0.61 across unseen ones, beating every baseline. Rock is the standout, reaching 0.98 on the strongest survey, and sand follows."
   },
   {
     "id": "maps",
-    "estSeconds": 19,
-    "narration": "Seen as full maps, the story holds. Against the ground truth, the U-Net recovers the rock outcrops cleanly. The tree baselines capture the broad structure but leave salt-and-pepper noise, which an edge-aware spatial filter, guided by depth, smooths away for a small, consistent gain."
+    "estSeconds": 10,
+    "narration": "As full maps, the story holds. The U-Net recovers rock outcrops cleanly, while the tree baselines leave noise that a depth-guided spatial filter smooths away."
   },
   {
     "id": "watch",
-    "estSeconds": 20,
-    "narration": "This is the pipeline running tile by tile. Each frame shows the input bands and every model's prediction, while the full-survey map fills in live. It's how we caught a labelling bug: two of the largest annotations were silently dropped, and the map made it obvious."
+    "estSeconds": 11,
+    "narration": "Here the pipeline runs tile by tile, each model predicting live as the map fills in. It's how we caught a labelling bug: two large annotations were silently dropped."
   },
   {
     "id": "conclusions",
-    "estSeconds": 21,
-    "narration": "So where does this land? Rock classification is reliable enough to be useful for hazard and habitat mapping. The ceiling isn't the architecture; it's data. The highest-value next steps are more annotation, a hillshade fourth band, engineered multi-scale features, and ensembling. The infrastructure for all of it already exists."
+    "estSeconds": 11,
+    "narration": "Rock classification is reliable enough for hazard and habitat mapping. The ceiling isn't the architecture, it's data. The next gains come from more annotation, not a bigger model."
   },
   {
     "id": "outro",
-    "estSeconds": 15,
-    "narration": "From raw multibeam survey to a trained, honestly-evaluated seabed classifier, fully reproducible. Built for IOLR, as part of Code4Good at Reichman University."
+    "estSeconds": 9,
+    "narration": "From raw multibeam survey to a trained, honestly evaluated seabed classifier, fully reproducible. Built for IOLR, as part of Code4Good at Reichman University."
   }
 ]
