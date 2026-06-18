@@ -35,7 +35,7 @@ export const COLORS = {
 
 export const CLASSES = [
   { key: "rock", label: "Rock", color: COLORS.rock },
-  { key: "shallow_rock", label: "Shallow rock", color: COLORS.shallow },
+  { key: "shallow_rock", label: "Shallow buried rock", color: COLORS.shallow },
   { key: "sand", label: "Sand", color: COLORS.sand },
   { key: "background", label: "Unlabeled", color: COLORS.unlabeled },
 ] as const;

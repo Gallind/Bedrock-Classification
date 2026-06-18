@@ -22,7 +22,7 @@ export const S12_Outro: React.FC = () => {
         classifier
       </Heading>
       <Body size={40}>
-        Rock is mapped reliably across surveys; shallow rock and labelled area
+        Rock is mapped reliably across surveys; shallow buried rock and labelled area
         remain the bottlenecks. The next gains come from more annotation, not a
         bigger model.
       </Body>

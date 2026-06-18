@@ -48,7 +48,7 @@ export const S11_Conclusions: React.FC = () => {
             habitat mapping.
           </Bullet>
           <Bullet delay={18} color={COLORS.shallow}>
-            Shallow rock is the next frontier: defined partly by depth, and we
+            Shallow buried rock is the next frontier: defined partly by depth, and we
             simply have very little of it labelled.
           </Bullet>
           <Bullet delay={24} color={COLORS.accent}>
@@ -69,7 +69,7 @@ export const S11_Conclusions: React.FC = () => {
           >
             Highest-value next steps
           </div>
-          <Step n="1" delay={30}>More annotated shallow rock</Step>
+          <Step n="1" delay={30}>More annotated shallow buried rock</Step>
           <Step n="2" delay={36}>Hillshade as a 4th band</Step>
           <Step n="3" delay={42}>Engineered multi-scale features</Step>
           <Step n="4" delay={48}>Model ensembling</Step>
