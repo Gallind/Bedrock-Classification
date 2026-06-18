@@ -10,6 +10,9 @@ classes** on Israeli surveys, and pairs the deep model with an interpretable per
 tree baseline for an honest, data-efficient comparison.
 
 > Reichman University — "Code4Good" course project, in collaboration with IOLR.
+>
+> A short narrated video walkthrough of the whole pipeline lives in [`demo/`](demo/)
+> (rendered to `demo/out/seabed-demo.mp4`).
 
 ---
 
@@ -162,11 +165,13 @@ feature-only, so valid at inference on a new survey).
 
 ## Results
 
-> **Label-fix caveat.** The **forest** models were retrained on the *corrected* polygon1
-> labels (commit `a4aeeb5`). The **U-Net figures and maps here are the previous training on
-> the old labels** — treat them as the pre-fix reference (U-Net retrain tracked in
-> `docs/UNET_RETRAIN_RTX4050.md`). Numbers below are quoted verbatim from
-> [`reports/README.md`](reports/README.md) and [`training/README.md`](training/README.md).
+> **Labels & retraining.** All models — the forest baselines *and* the U-Net — are trained
+> on the *corrected* polygon1 labels (commit `a4aeeb5`: priority burn order + recovered the
+> mislabeled rock feature). The U-Net was fully retrained for this fix on a CUDA box (RTX
+> 4050; see [`docs/UNET_RETRAIN_RTX4050.md`](docs/UNET_RETRAIN_RTX4050.md)), so the metrics,
+> figures, classified maps, and watch GIFs below all reflect the retrained models. Numbers
+> are quoted verbatim from [`reports/README.md`](reports/README.md) and
+> [`training/README.md`](training/README.md).
 
 ### Development split — within-survey (spatial blocks, test tile-pixels)
 
@@ -174,8 +179,8 @@ feature-only, so valid at inference on a new survey).
 |---|---|---|---|---|---|---|
 | RF (3-band) | 0.716 | 0.741 | 0.502 | 0.900 | 0.445 | 0.802 |
 | HGB (3-band) | 0.728 | 0.764 | 0.531 | 0.906 | 0.456 | 0.823 |
-| **U-Net (3-band)** | **0.784** | **0.782** | **0.599** | **0.955** | **0.569** | **0.829** |
-| U-Net (2-band) | 0.670 | 0.670 | 0.384 | — | — | — |
+| **U-Net (3-band)** | **0.784** | **0.782** | **0.599** | **0.955** | **0.568** | **0.827** |
+| U-Net (2-band) | 0.670 | 0.670 | 0.386 | — | — | — |
 
 ### Cross-survey generalization — leave-one-polygon-out (mean ± std, 4 folds)
 
@@ -323,6 +328,7 @@ training/                model packages
   runs/                    checkpoints, metrics, maps               — git-ignored
   tests/
 reports/                 publication figures, classified maps, watch GIFs
+demo/                    narrated walkthrough video (Remotion, React/TS → MP4)
 docs/                     data-augmentation contract & setup guides
 DL_article.pdf           reference paper (Garone et al., 2023)
 ```
@@ -339,6 +345,7 @@ DL_article.pdf           reference paper (Garone et al., 2023)
 | [`docs/DATA_AUGMENTATION.md`](docs/DATA_AUGMENTATION.md) | binding split/augmentation/normalization contract |
 | [`docs/TRAINING_DATA_SETUP.md`](docs/TRAINING_DATA_SETUP.md) | regenerating the tile dataset |
 | [`docs/UNET_RETRAIN_RTX4050.md`](docs/UNET_RETRAIN_RTX4050.md) | U-Net retrain on the corrected labels |
+| [`demo/README.md`](demo/README.md) | narrated Remotion walkthrough video — build & render `out/seabed-demo.mp4` |
 | [`CLAUDE.md`](CLAUDE.md) | architecture reference & conventions |
 | [`project-overview.md`](project-overview.md) | original research brief |
 

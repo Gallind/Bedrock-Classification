@@ -3,12 +3,10 @@
 Presentation artifacts comparing the per-pixel tree baselines and the U-Net on all
 four annotated survey polygons (plus forest-only `polygon6`).
 
-> **Label-fix caveat.** The **forest** models (RandomForest, HistGradientBoosting and
-> their guided-spatial regularization) were **retrained on the corrected polygon1
-> labels** (commit `a4aeeb5`: priority burn order + recovered the mislabeled rock
-> feature). The **U-Net is the *previous* training on the *old* labels** — it has not
-> yet been retrained. Treat U-Net numbers/maps here as the pre-fix reference; the
-> retrain runs on the RTX 4050 box (see `docs/UNET_RETRAIN_RTX4050.md`).
+> **All models are trained on the corrected polygon1 labels** (commit `a4aeeb5`: priority
+> burn order + recovered the mislabeled rock feature). The U-Net was fully retrained for
+> this fix on the RTX 4050 box (see `docs/UNET_RETRAIN_RTX4050.md`), so the metrics, maps,
+> and watch GIFs here reflect the retrained models.
 
 ## Configs
 
@@ -30,7 +28,7 @@ spatial splits.
   - `<polygon>__random_forest_spatial__forest_3band__…png`
   - `<polygon>__hist_gradient_boosting_raw__forest_3band__…png`
   - `<polygon>__hist_gradient_boosting_spatial__forest_3band__…png`
-  - `<polygon>__unet__experiment_3band__…png` *(previous training, old labels)*
+  - `<polygon>__unet__experiment_3band__…png`
   - `<polygon>__ground_truth__…png`
 
   Each is the model's class map overlaid on the survey hillshade backdrop (grey =
@@ -56,8 +54,8 @@ spatial splits.
 |---|---|---|---|---|---|---|
 | RF (3band) | 0.716 | 0.741 | 0.502 | 0.900 | 0.445 | 0.802 |
 | HGB (3band) | 0.728 | 0.764 | 0.531 | 0.906 | 0.456 | 0.823 |
-| U-Net (3band) *(prev. labels)* | 0.784 | 0.782 | 0.599 | 0.955 | 0.569 | 0.829 |
-| U-Net (2band) *(prev. labels)* | 0.670 | 0.670 | 0.384 | — | — | — |
+| U-Net (3band) | 0.784 | 0.782 | 0.599 | 0.955 | 0.568 | 0.827 |
+| U-Net (2band) | 0.670 | 0.670 | 0.386 | — | — | — |
 
 Forest full-polygon map, raw → guided-spatial (lifts macro-Dice, mostly via
 `shallow_rock`): RF 0.728 → 0.740 (shallow 0.466 → 0.494); HGB 0.733 → 0.742
