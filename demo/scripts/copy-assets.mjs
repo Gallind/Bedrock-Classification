@@ -22,7 +22,8 @@ const ASSETS = [
   // Scene 2 — the three input bands + a hillshade
   ["DataBase/polygon1/bathymetry Grid 0.5m.jpg", "band_bathymetry.jpg"],
   ["DataBase/polygon1/Back scatter 0.2m.jpg", "band_backscatter.jpg"],
-  ["DataBase/polygon3/HB_Poly3_Slope_1m.jpg", "band_slope.jpg"],
+  // Generated slope render with the warm-red colour ramp (matches outputs/)
+  ["outputs/polygon3/t128m_o50pct_r1m/stitched/features_slope.jpg", "band_slope.jpg"],
   ["DataBase/polygon3/HB_Poly3_HS_1m.jpg", "band_hillshade.jpg"],
 
   // Scene 6 — feature importance
