@@ -1,0 +1,2 @@
+name: unet_hier
+bands: [backscatter, bathymetry, slope]
