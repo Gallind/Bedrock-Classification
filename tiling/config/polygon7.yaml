@@ -32,6 +32,6 @@ labels:
     sand: 3
   priority: [sand, shallow_rock, rock]
   class_files:
-    rock: ["Polygon 7 Rock.shp"]
+    rock: ["Polygon 7 Rock_no_ship.shp"]
     shallow_rock: ["Polygon 7 Shallow Buried Rock.shp"]
     sand: ["Polygon 7 Sand.shp"]
