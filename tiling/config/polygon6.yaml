@@ -39,4 +39,4 @@ labels:
   class_files:
     rock: ["Poly 6 inter_Rock.shp"]
     shallow_rock: ["Poly 6 inter_Shallow_Rock.shp"]
-    sand: ["Poly 6 inter_Sand.shp"]
+    sand: ["Poly 6 inter_Sand.shp", "Poly 6 inter.shp"]  # boundary fills unlabeled area as sand

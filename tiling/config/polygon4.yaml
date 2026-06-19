@@ -40,4 +40,4 @@ labels:
   class_files:
     rock: ["Poly4 rock .shp"]
     shallow_rock: ["Poly4 Shallow rock shape.shp"]
-    sand: ["Poly4 Sand .shp"]
+    sand: ["Poly4 Sand .shp", "Poly4 shape.shp"]  # boundary fills unlabeled area as sand

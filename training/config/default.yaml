@@ -19,7 +19,7 @@ ignore_label: 0                 # background/unlabeled: never trained, never sco
 # is what seabed_unet.crossval uses for leave-one-polygon-out reporting.
 split:
   mode: spatial_blocks
-  polygons: [polygon1, polygon3, polygon4, polygon5]
+  polygons: [polygon1, polygon3, polygon4, polygon5, polygon6, polygon7]
   fractions: [0.7, 0.15, 0.15]  # train/val/test share of each polygon's base tiles
   buffer_m: 96                  # dropped strip on EACH side of a region boundary
   use_augmented_for_train: true

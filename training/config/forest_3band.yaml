@@ -8,7 +8,7 @@ bands: [backscatter, bathymetry, slope]
 
 split:
   mode: spatial_blocks
-  polygons: [polygon1, polygon3, polygon4, polygon5, polygon6]
+  polygons: [polygon1, polygon3, polygon4, polygon5, polygon6, polygon7]
   use_augmented_for_train: false   # forest trains on base _rot tiles only
 
 forest:

@@ -34,4 +34,4 @@ labels:
   class_files:
     rock: ["Polygon 7 Rock_no_ship.shp"]
     shallow_rock: ["Polygon 7 Shallow Buried Rock.shp"]
-    sand: ["Polygon 7 Sand.shp"]
+    sand: ["Polygon 7 Sand.shp", "Polygon 7.shp"]  # boundary fills unlabeled area as sand
