@@ -1,6 +1,6 @@
 import type React from "react";
 import type { SceneSpec } from "./types";
-import narration from "./narration.json";
+import narration from "../shared/narration.json";
 import { S01_Intro } from "./scenes/S01_Intro";
 import { S02_Data } from "./scenes/S02_Data";
 import { S03_Pipeline } from "./scenes/S03_Pipeline";

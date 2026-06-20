@@ -19,7 +19,7 @@ import { parseFile } from "music-metadata";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const demoRoot = path.resolve(here, "..");
-const narrationPath = path.join(demoRoot, "src", "narration.json");
+const narrationPath = path.join(demoRoot, "shared", "narration.json");
 const audioDir = path.join(demoRoot, "public", "audio");
 
 const force = process.argv.includes("--force");
