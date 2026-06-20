@@ -21,9 +21,10 @@ def main() -> None:
     args = ap.parse_args()
 
     missing = [name for name in ASSETS if resolve(name) is None]
-    out, n = build(args.out)
+    out, n, embedded = build(args.out)
 
     print(f"[+] wrote {n}-slide deck -> {out}")
+    print(f"[+] fonts embedded: {'yes' if embedded else 'no (TTFs missing in fonts/)'}")
     if missing:
         print(f"[!] {len(missing)} asset(s) missing — rendered as placeholders:")
         for name in missing:

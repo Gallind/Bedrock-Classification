@@ -2,7 +2,7 @@
   {
     "id": "intro",
     "estSeconds": 13,
-    "narration": "Mapping the seafloor by hand is slow and inconsistent. With Israel's Oceanographic and Limnological Research institute, we built a pipeline turning multibeam sonar into per-pixel maps of rock, shallow rock, and sand."
+    "narration": "Mapping the seafloor by hand is slow and inconsistent. With Israel's Oceanographic and Limnological Research institute, we built a pipeline turning multibeam sonar into per-pixel maps of rock, shallow buried rock, and sand."
   },
   {
     "id": "data",

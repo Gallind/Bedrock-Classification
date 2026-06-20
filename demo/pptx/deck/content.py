@@ -1,10 +1,20 @@
 """The deck: an ordered list of typed slide specs.
 
 This is the deck's editable content layer — reorder, reword, or add slides here
-without touching the rendering code. It deliberately diverges from the video's
-12-scene flow (a bit more detail, a different order), while reusing the same
-shared assets, palette, and narration (scene ids below pull the matching
-narration in as speaker notes).
+without touching the rendering code.
+
+Tuned for a ~3-minute exhibition talk (IOLR / Code4Good showcase), following the
+organisers' flow: title + team → problem (+ audience) → solution figure →
+the most impressive results → a short demo → conclusions. Earlier "system
+design / alternatives" detail is intentionally dropped to fit the time.
+
+Text may contain *asterisk markup* — wrapped spans render in the gold accent so
+key terms and numbers stand out.
+
+Image `style`:
+  "float" — key the flat background out and float the subject (maps, renders)
+  "card"  — sit on a clean light card (charts / matplotlib graphical content)
+  "frame" — dark panel with a thin border (mixed / animated content)
 
 Metrics here are the ORIGINAL published numbers (within-survey macro-Dice 0.784,
 cross-survey LOPO 0.608) — matching the already-distributed video. They are not
@@ -20,14 +30,9 @@ class Title:
     subtitle: str = ""
     footer: str = ""
     logo: str = "brand_mark.png"
-    scene: Optional[str] = None
-    notes: Optional[str] = None
-
-
-@dataclass
-class Section:
-    eyebrow: str
-    heading: str
+    credits: list = field(default_factory=list)       # (name, superscript, highlight)
+    affiliations: list = field(default_factory=list)  # (number, full text)
+    source: str = ""
     scene: Optional[str] = None
     notes: Optional[str] = None
 
@@ -65,6 +70,7 @@ class Image:
     image: str
     caption: str = ""
     eyebrow: str = ""
+    style: str = "frame"
     scene: Optional[str] = None
     notes: Optional[str] = None
 
@@ -77,6 +83,7 @@ class Compare:
     right_image: str
     right_label: str
     eyebrow: str = ""
+    style: str = "frame"
     scene: Optional[str] = None
     notes: Optional[str] = None
 
@@ -88,6 +95,7 @@ class ImageBullets:
     bullets: list[str]
     eyebrow: str = ""
     image_side: str = "right"
+    style: str = "frame"
     scene: Optional[str] = None
     notes: Optional[str] = None
 
@@ -102,170 +110,103 @@ class Legend:
 
 
 DECK: list = [
+    # 1 — Title: project, team, mentor, collaboration (~10s)
     Title(
         title="Seabed Classification",
-        subtitle="Turning multibeam sonar into per-pixel maps of rock, shallow rock, and sand",
-        footer="IOLR  ·  Code4Good @ Reichman University",
+        subtitle="Turning multibeam sonar into per-pixel maps of *rock, shallow buried rock, and sand*.",
+        # highlight=False -> white "students" line; True -> gold "advisors" line
+        credits=[
+            ("Gal Lind", "1,2", False),
+            ("Adi Lind", "1,2", False),
+            ("Eden Tsarfaty", "1,2", False),
+            ("Adi Gotlib", "1,2", False),
+            ("Asaf Giladi", "3", True),
+            ("Tomer Sheffer", "1", True),
+            ("Sarel Cohen", "1", True),
+        ],
+        affiliations=[
+            ("1", "Reichman University"),
+            ("2", "Code4Good"),
+            ("3", "Israel Oceanographic and Limnological Research (IOLR), National Institute of Oceanography, Haifa, Israel"),
+        ],
+        source="Method baseline: Garone et al., Frontiers in Earth Science, 2023",
         logo="brand_mark.png",
         scene="intro",
     ),
 
+    # 2 — The problem (+ target audience) (~40s)
     Bullets(
         eyebrow="The problem",
-        heading="Why automate seabed mapping?",
+        heading="Why automate *seabed mapping*?",
         bullets=[
-            "Experts map the seafloor by hand — slow, subjective, and hard to reproduce.",
-            "Goal: a reproducible per-pixel classifier for rock, shallow rock, and sand.",
-            "Built with IOLR from R/V Bat-Galim multibeam echosounder surveys.",
+            "Marine geologists map the seafloor *by hand* — slow, subjective, hard to reproduce.",
+            "IOLR needs reproducible per-pixel maps of *rock, shallow buried rock, and sand*.",
+            "Used downstream for *habitat and geohazard* mapping on Israel's Mediterranean shelf.",
+            "Input: R/V Bat-Galim *multibeam echosounder* surveys — yet only ~1–2 km² of expert labels.",
         ],
         scene="intro",
     ),
 
+    # 3 — The solution: one informative figure + the approach (~50s)
     ImageBullets(
-        eyebrow="Data",
-        heading="Three physical input layers",
+        eyebrow="Our approach",
+        heading="From sonar to a *per-pixel map*",
         image="band_bathymetry.jpg",
         image_side="right",
+        style="float",
         bullets=[
-            "Bathymetry — seabed depth from the multibeam echosounder.",
-            "Backscatter — acoustic hardness proxy (scale varies per survey).",
-            "Slope — derived from the bathymetry surface.",
-            "Only ~1–2 km² of expert labels to learn from.",
-        ],
-        scene="data",
-    ),
-
-    Legend(
-        eyebrow="Ground truth",
-        heading="The three seabed classes",
-        note="Experts hand-draw class polygons. Unlabeled pixels are ignored in both training and scoring.",
-        scene="data",
-    ),
-
-    Bullets(
-        eyebrow="Pipeline",
-        heading="A deterministic tiling pipeline",
-        bullets=[
-            "Every layer reprojected onto one shared 1 m grid (UTM zone 36N).",
-            "Expert polygons rasterized into per-pixel class labels.",
-            "Each survey cut into overlapping 128 m feature + label tile pairs.",
+            "Three physical layers — *bathymetry, backscatter, slope* — on one shared 1 m grid.",
+            "Expert polygons rasterized into per-pixel *training labels*.",
+            "A compact *U-Net* learns spatial context; RF / HGB trees as baselines.",
+            "Scored *leave-one-survey-out* — tested on a survey never seen in training.",
         ],
         scene="pipeline",
     ),
 
-    Bullets(
-        eyebrow="Tiling",
-        heading="Three tiling modes",
-        bullets=[
-            "Standard — axis-aligned tiles over the survey.",
-            "Rotated — tiles aligned to the annotation orientation.",
-            "Augmented — rigid re-extraction passes (~250 base tiles → 900+).",
-        ],
-        scene="modes",
-    ),
-
-    Bullets(
-        eyebrow="Method",
-        heading="The augmentation contract",
-        bullets=[
-            "Pixels are physical measurements → only rigid transforms (rotations, flips).",
-            "No brightness, noise, or photometric edits — ever.",
-            "Splits are spatial (whole regions), never random tiles.",
-            "Backscatter is normalized per survey to bridge the cross-survey domain shift.",
-        ],
-        scene="augment",
-    ),
-
-    ImageBullets(
-        eyebrow="Models",
-        heading="Two model families, same three bands",
-        image="feature_importance.png",
-        image_side="right",
-        bullets=[
-            "U-Net — a compact CNN that learns spatial context.",
-            "Random Forest & HistGradientBoosting — per-pixel tree baselines.",
-            "Spatial variants smooth tree outputs with a depth-guided filter.",
-            "Bathymetry is consistently the most informative band.",
-        ],
-        scene="models",
-    ),
-
-    Bullets(
-        eyebrow="Evaluation",
-        heading="How we measure generalisation",
-        bullets=[
-            "Leave-one-polygon-out: train on the other surveys, predict the held-out one.",
-            "Repeat for every survey and report the mean — the honest number.",
-            "It measures performance on a survey the model has never seen.",
-            "Within-survey spatial-block splits are reported alongside for context.",
-        ],
-        scene="eval",
-    ),
-
+    # 4 — Results: the headline numbers (~30s)
     Stats(
         eyebrow="Results",
-        heading="The 3-band U-Net wins",
+        heading="The 3-band *U-Net* wins",
         stats=[
             Stat("0.784", "Within-survey", "macro-Dice", "accent"),
-            Stat("0.608", "Cross-survey (LOPO)", "macro-Dice", "accent"),
+            Stat("0.608", "Cross-survey (LOPO)", "macro-Dice", "accent2"),
             Stat("0.976", "Rock, best survey", "cross-survey Dice", "rock"),
         ],
-        footnote="Beats the 2-band U-Net and the tree baselines on every metric.",
+        footnote="Beats the 2-band U-Net and the tree baselines on *every* metric.",
         scene="results",
     ),
 
-    Image(
-        eyebrow="Results",
-        heading="Model comparison by tile type",
-        image="metrics_by_type.png",
-        caption="Within-survey test split across U-Net, Random Forest, and HGB (raw + spatial).",
-        scene="results",
-    ),
-
+    # 5 — Results: the most impressive figure (~30s)
     Compare(
-        eyebrow="Maps",
-        heading="Classified maps — U-Net vs ground truth",
+        eyebrow="Results",
+        heading="*U-Net* vs expert ground truth",
         left_image="map_p1_ground_truth.png",
         left_label="Expert ground truth",
         right_image="map_p1_unet.png",
         right_label="U-Net prediction",
+        style="float",
         scene="maps",
     ),
 
-    Compare(
-        eyebrow="Maps",
-        heading="Spatial filtering cleans up the trees",
-        left_image="map_p1_rf_raw.png",
-        left_label="Random Forest (raw)",
-        right_image="map_p1_rf_spatial.png",
-        right_label="Random Forest (spatial)",
-        scene="maps",
-    ),
-
+    # 6 — Short demo clip (~30s)
     Image(
-        eyebrow="Pipeline in motion",
-        heading="Live watch viewer",
+        eyebrow="Live demo",
+        heading="Watching the model *predict tile by tile*",
         image="watch_polygon3.gif",
-        caption="Each model predicts tile by tile — this is how we caught a label-dropout bug.",
+        style="frame",
+        caption="Our live QA viewer — each model fills in the survey tile by tile.",
         scene="watch",
     ),
 
+    # 7 — Conclusions (~20s)
     Bullets(
-        eyebrow="Takeaways",
-        heading="Conclusions",
+        eyebrow="Conclusions",
+        heading="*Takeaways*",
         bullets=[
-            "Rock classification is reliable enough for hazard and habitat mapping.",
-            "The ceiling is data, not architecture.",
-            "Biggest next gain: more annotated shallow-rock area — not a bigger model.",
+            "Rock is mapped *reliably across surveys* — usable for hazard and habitat work.",
+            "The ceiling is *data, not architecture*.",
+            "Biggest next gain: more annotated *shallow buried rock* area — not a bigger model.",
         ],
         scene="conclusions",
-    ),
-
-    Title(
-        title="Thank you",
-        subtitle="From raw multibeam survey to a trained, honestly evaluated seabed classifier — fully reproducible.",
-        footer="IOLR  ·  Code4Good @ Reichman University",
-        logo="brand_mark.png",
-        scene="outro",
     ),
 ]

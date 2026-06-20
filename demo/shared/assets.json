@@ -22,6 +22,10 @@
 
     "brand_logo.png": "demo/brand/seabed-logo.png",
     "brand_logo_light.png": "demo/brand/seabed-logo-light.png",
-    "brand_mark.png": "demo/brand/seabed-mark.png"
+    "brand_mark.png": "demo/brand/seabed-mark.png",
+
+    "org_iolr.png": "demo/brand/logos/ready/iolr.png",
+    "org_reichman.png": "demo/brand/logos/ready/reichman.png",
+    "org_code4good.png": "demo/brand/logos/ready/code4good.png"
   }
 }
