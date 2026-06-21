@@ -1,0 +1,4 @@
+# GitHub Pages cannot serve Git LFS files, so store all site assets as normal blobs.
+*.jpg -filter -diff -merge -text
+*.png -filter -diff -merge -text
+*.json -text

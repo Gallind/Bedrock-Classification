@@ -1,0 +1,4036 @@
+{
+  "polygon": "polygon3",
+  "bands": [
+    "backscatter",
+    "bathymetry",
+    "slope"
+  ],
+  "class_names": {
+    "1": "rock",
+    "2": "shallow_rock",
+    "3": "sand"
+  },
+  "class_palette": {
+    "0": [
+      0,
+      0,
+      0
+    ],
+    "1": [
+      202,
+      0,
+      32
+    ],
+    "2": [
+      244,
+      165,
+      130
+    ],
+    "3": [
+      5,
+      113,
+      176
+    ]
+  },
+  "overlay_alpha": 0.8,
+  "map_size": {
+    "width": 704,
+    "height": 448
+  },
+  "backdrop": "backdrop_backscatter.jpg",
+  "backdrops": {
+    "backscatter": "backdrop_backscatter.jpg",
+    "bathymetry": "backdrop_bathymetry.jpg",
+    "slope": "backdrop_slope.jpg"
+  },
+  "truth_map": "truth.png",
+  "n_tiles": 60,
+  "models": [
+    {
+      "id": "rf_raw",
+      "label": "Random Forest",
+      "kind": "tree",
+      "spatial": false,
+      "summary": {
+        "mean_dice": 0.8096,
+        "per_class_dice": {
+          "rock": 0.977,
+          "shallow_rock": 0.7065,
+          "sand": 0.7454
+        }
+      }
+    },
+    {
+      "id": "rf_spatial",
+      "label": "Random Forest (guided)",
+      "kind": "tree",
+      "spatial": true,
+      "summary": {
+        "mean_dice": 0.824,
+        "per_class_dice": {
+          "rock": 0.987,
+          "shallow_rock": 0.724,
+          "sand": 0.7609
+        }
+      }
+    },
+    {
+      "id": "hgb_raw",
+      "label": "HistGradBoost",
+      "kind": "tree",
+      "spatial": false,
+      "summary": {
+        "mean_dice": 0.7424,
+        "per_class_dice": {
+          "rock": 0.9694,
+          "shallow_rock": 0.5788,
+          "sand": 0.679
+        }
+      }
+    },
+    {
+      "id": "hgb_spatial",
+      "label": "HistGradBoost (guided)",
+      "kind": "tree",
+      "spatial": true,
+      "summary": {
+        "mean_dice": 0.7739,
+        "per_class_dice": {
+          "rock": 0.9829,
+          "shallow_rock": 0.6248,
+          "sand": 0.7139
+        }
+      }
+    },
+    {
+      "id": "unet_3band",
+      "label": "U-Net (3-band)",
+      "kind": "unet",
+      "spatial": false,
+      "summary": {
+        "mean_dice": 0.7476,
+        "per_class_dice": {
+          "rock": 0.9841,
+          "shallow_rock": 0.5549,
+          "sand": 0.7038
+        }
+      }
+    },
+    {
+      "id": "unet_2band",
+      "label": "U-Net (2-band)",
+      "kind": "unet",
+      "spatial": false,
+      "summary": {
+        "mean_dice": 0.7848,
+        "per_class_dice": {
+          "rock": 0.9713,
+          "shallow_rock": 0.6542,
+          "sand": 0.729
+        }
+      }
+    }
+  ],
+  "steps": [
+    {
+      "i": 1,
+      "tile_id": "polygon3_r000_c000",
+      "outline_px": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          128.0,
+          0.0
+        ],
+        [
+          128.0,
+          128.0
+        ],
+        [
+          0.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0001_backscatter.jpg",
+        "bathymetry": "steps/0001_bathymetry.jpg",
+        "slope": "steps/0001_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0001_map.png",
+          "pred": "steps/rf_raw/0001_pred.png",
+          "tile_dice": 0.4444,
+          "running_mean_dice": 0.4444
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0001_map.png",
+          "pred": "steps/rf_spatial/0001_pred.png",
+          "tile_dice": 0.4444,
+          "running_mean_dice": 0.4444
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0001_map.png",
+          "pred": "steps/hgb_raw/0001_pred.png",
+          "tile_dice": 0.4479,
+          "running_mean_dice": 0.4479
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0001_map.png",
+          "pred": "steps/hgb_spatial/0001_pred.png",
+          "tile_dice": 0.4479,
+          "running_mean_dice": 0.4479
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0001_map.png",
+          "pred": "steps/unet_3band/0001_pred.png",
+          "tile_dice": 0.486,
+          "running_mean_dice": 0.486
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0001_map.png",
+          "pred": "steps/unet_2band/0001_pred.png",
+          "tile_dice": 0.1792,
+          "running_mean_dice": 0.1792
+        }
+      }
+    },
+    {
+      "i": 2,
+      "tile_id": "polygon3_r000_c001",
+      "outline_px": [
+        [
+          64.0,
+          0.0
+        ],
+        [
+          192.0,
+          0.0
+        ],
+        [
+          192.0,
+          128.0
+        ],
+        [
+          64.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0002_backscatter.jpg",
+        "bathymetry": "steps/0002_bathymetry.jpg",
+        "slope": "steps/0002_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0002_map.png",
+          "pred": "steps/rf_raw/0002_pred.png",
+          "tile_dice": 0.4248,
+          "running_mean_dice": 0.4346
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0002_map.png",
+          "pred": "steps/rf_spatial/0002_pred.png",
+          "tile_dice": 0.4248,
+          "running_mean_dice": 0.4346
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0002_map.png",
+          "pred": "steps/hgb_raw/0002_pred.png",
+          "tile_dice": 0.4171,
+          "running_mean_dice": 0.4325
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0002_map.png",
+          "pred": "steps/hgb_spatial/0002_pred.png",
+          "tile_dice": 0.4171,
+          "running_mean_dice": 0.4325
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0002_map.png",
+          "pred": "steps/unet_3band/0002_pred.png",
+          "tile_dice": 0.3863,
+          "running_mean_dice": 0.4362
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0002_map.png",
+          "pred": "steps/unet_2band/0002_pred.png",
+          "tile_dice": 0.0673,
+          "running_mean_dice": 0.1233
+        }
+      }
+    },
+    {
+      "i": 3,
+      "tile_id": "polygon3_r000_c002",
+      "outline_px": [
+        [
+          128.0,
+          0.0
+        ],
+        [
+          256.0,
+          0.0
+        ],
+        [
+          256.0,
+          128.0
+        ],
+        [
+          128.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0003_backscatter.jpg",
+        "bathymetry": "steps/0003_bathymetry.jpg",
+        "slope": "steps/0003_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0003_map.png",
+          "pred": "steps/rf_raw/0003_pred.png",
+          "tile_dice": 0.4596,
+          "running_mean_dice": 0.443
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0003_map.png",
+          "pred": "steps/rf_spatial/0003_pred.png",
+          "tile_dice": 0.4596,
+          "running_mean_dice": 0.443
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0003_map.png",
+          "pred": "steps/hgb_raw/0003_pred.png",
+          "tile_dice": 0.4113,
+          "running_mean_dice": 0.4254
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0003_map.png",
+          "pred": "steps/hgb_spatial/0003_pred.png",
+          "tile_dice": 0.4113,
+          "running_mean_dice": 0.4254
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0003_map.png",
+          "pred": "steps/unet_3band/0003_pred.png",
+          "tile_dice": 0.4371,
+          "running_mean_dice": 0.4365
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0003_map.png",
+          "pred": "steps/unet_2band/0003_pred.png",
+          "tile_dice": 0.4019,
+          "running_mean_dice": 0.2162
+        }
+      }
+    },
+    {
+      "i": 4,
+      "tile_id": "polygon3_r000_c003",
+      "outline_px": [
+        [
+          192.0,
+          0.0
+        ],
+        [
+          320.0,
+          0.0
+        ],
+        [
+          320.0,
+          128.0
+        ],
+        [
+          192.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0004_backscatter.jpg",
+        "bathymetry": "steps/0004_bathymetry.jpg",
+        "slope": "steps/0004_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0004_map.png",
+          "pred": "steps/rf_raw/0004_pred.png",
+          "tile_dice": 0.5297,
+          "running_mean_dice": 0.4646
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0004_map.png",
+          "pred": "steps/rf_spatial/0004_pred.png",
+          "tile_dice": 0.5297,
+          "running_mean_dice": 0.4646
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0004_map.png",
+          "pred": "steps/hgb_raw/0004_pred.png",
+          "tile_dice": 0.4173,
+          "running_mean_dice": 0.4234
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0004_map.png",
+          "pred": "steps/hgb_spatial/0004_pred.png",
+          "tile_dice": 0.4173,
+          "running_mean_dice": 0.4234
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0004_map.png",
+          "pred": "steps/unet_3band/0004_pred.png",
+          "tile_dice": 0.5647,
+          "running_mean_dice": 0.4685
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0004_map.png",
+          "pred": "steps/unet_2band/0004_pred.png",
+          "tile_dice": 0.4156,
+          "running_mean_dice": 0.266
+        }
+      }
+    },
+    {
+      "i": 5,
+      "tile_id": "polygon3_r000_c004",
+      "outline_px": [
+        [
+          256.0,
+          0.0
+        ],
+        [
+          384.0,
+          0.0
+        ],
+        [
+          384.0,
+          128.0
+        ],
+        [
+          256.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0005_backscatter.jpg",
+        "bathymetry": "steps/0005_bathymetry.jpg",
+        "slope": "steps/0005_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0005_map.png",
+          "pred": "steps/rf_raw/0005_pred.png",
+          "tile_dice": 0.3325,
+          "running_mean_dice": 0.4382
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0005_map.png",
+          "pred": "steps/rf_spatial/0005_pred.png",
+          "tile_dice": 0.3325,
+          "running_mean_dice": 0.4382
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0005_map.png",
+          "pred": "steps/hgb_raw/0005_pred.png",
+          "tile_dice": 0.3322,
+          "running_mean_dice": 0.4052
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0005_map.png",
+          "pred": "steps/hgb_spatial/0005_pred.png",
+          "tile_dice": 0.3322,
+          "running_mean_dice": 0.4052
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0005_map.png",
+          "pred": "steps/unet_3band/0005_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.5748
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0005_map.png",
+          "pred": "steps/unet_2band/0005_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.4128
+        }
+      }
+    },
+    {
+      "i": 6,
+      "tile_id": "polygon3_r000_c005",
+      "outline_px": [
+        [
+          320.0,
+          0.0
+        ],
+        [
+          448.0,
+          0.0
+        ],
+        [
+          448.0,
+          128.0
+        ],
+        [
+          320.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0006_backscatter.jpg",
+        "bathymetry": "steps/0006_bathymetry.jpg",
+        "slope": "steps/0006_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0006_map.png",
+          "pred": "steps/rf_raw/0006_pred.png",
+          "tile_dice": 0.6636,
+          "running_mean_dice": 0.4758
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0006_map.png",
+          "pred": "steps/rf_spatial/0006_pred.png",
+          "tile_dice": 0.6636,
+          "running_mean_dice": 0.4758
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0006_map.png",
+          "pred": "steps/hgb_raw/0006_pred.png",
+          "tile_dice": 0.5757,
+          "running_mean_dice": 0.4336
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0006_map.png",
+          "pred": "steps/hgb_spatial/0006_pred.png",
+          "tile_dice": 0.5757,
+          "running_mean_dice": 0.4336
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0006_map.png",
+          "pred": "steps/unet_3band/0006_pred.png",
+          "tile_dice": 0.3328,
+          "running_mean_dice": 0.5345
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0006_map.png",
+          "pred": "steps/unet_2band/0006_pred.png",
+          "tile_dice": 0.3324,
+          "running_mean_dice": 0.3994
+        }
+      }
+    },
+    {
+      "i": 7,
+      "tile_id": "polygon3_r000_c006",
+      "outline_px": [
+        [
+          384.0,
+          0.0
+        ],
+        [
+          512.0,
+          0.0
+        ],
+        [
+          512.0,
+          128.0
+        ],
+        [
+          384.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0007_backscatter.jpg",
+        "bathymetry": "steps/0007_bathymetry.jpg",
+        "slope": "steps/0007_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0007_map.png",
+          "pred": "steps/rf_raw/0007_pred.png",
+          "tile_dice": 0.9997,
+          "running_mean_dice": 0.5506
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0007_map.png",
+          "pred": "steps/rf_spatial/0007_pred.png",
+          "tile_dice": 0.9997,
+          "running_mean_dice": 0.5506
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0007_map.png",
+          "pred": "steps/hgb_raw/0007_pred.png",
+          "tile_dice": 0.8371,
+          "running_mean_dice": 0.4912
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0007_map.png",
+          "pred": "steps/hgb_spatial/0007_pred.png",
+          "tile_dice": 0.8371,
+          "running_mean_dice": 0.4912
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0007_map.png",
+          "pred": "steps/unet_3band/0007_pred.png",
+          "tile_dice": 0.799,
+          "running_mean_dice": 0.5723
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0007_map.png",
+          "pred": "steps/unet_2band/0007_pred.png",
+          "tile_dice": 0.84,
+          "running_mean_dice": 0.4624
+        }
+      }
+    },
+    {
+      "i": 8,
+      "tile_id": "polygon3_r000_c007",
+      "outline_px": [
+        [
+          448.0,
+          0.0
+        ],
+        [
+          576.0,
+          0.0
+        ],
+        [
+          576.0,
+          128.0
+        ],
+        [
+          448.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0008_backscatter.jpg",
+        "bathymetry": "steps/0008_bathymetry.jpg",
+        "slope": "steps/0008_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0008_map.png",
+          "pred": "steps/rf_raw/0008_pred.png",
+          "tile_dice": 0.7863,
+          "running_mean_dice": 0.5801
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0008_map.png",
+          "pred": "steps/rf_spatial/0008_pred.png",
+          "tile_dice": 0.7863,
+          "running_mean_dice": 0.5801
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0008_map.png",
+          "pred": "steps/hgb_raw/0008_pred.png",
+          "tile_dice": 0.7197,
+          "running_mean_dice": 0.5198
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0008_map.png",
+          "pred": "steps/hgb_spatial/0008_pred.png",
+          "tile_dice": 0.7197,
+          "running_mean_dice": 0.5198
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0008_map.png",
+          "pred": "steps/unet_3band/0008_pred.png",
+          "tile_dice": 0.7095,
+          "running_mean_dice": 0.5894
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0008_map.png",
+          "pred": "steps/unet_2band/0008_pred.png",
+          "tile_dice": 0.6746,
+          "running_mean_dice": 0.4889
+        }
+      }
+    },
+    {
+      "i": 9,
+      "tile_id": "polygon3_r000_c008",
+      "outline_px": [
+        [
+          512.0,
+          0.0
+        ],
+        [
+          640.0,
+          0.0
+        ],
+        [
+          640.0,
+          128.0
+        ],
+        [
+          512.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0009_backscatter.jpg",
+        "bathymetry": "steps/0009_bathymetry.jpg",
+        "slope": "steps/0009_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0009_map.png",
+          "pred": "steps/rf_raw/0009_pred.png",
+          "tile_dice": 0.7421,
+          "running_mean_dice": 0.5981
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0009_map.png",
+          "pred": "steps/rf_spatial/0009_pred.png",
+          "tile_dice": 0.7421,
+          "running_mean_dice": 0.5981
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0009_map.png",
+          "pred": "steps/hgb_raw/0009_pred.png",
+          "tile_dice": 0.7469,
+          "running_mean_dice": 0.545
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0009_map.png",
+          "pred": "steps/hgb_spatial/0009_pred.png",
+          "tile_dice": 0.7469,
+          "running_mean_dice": 0.545
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0009_map.png",
+          "pred": "steps/unet_3band/0009_pred.png",
+          "tile_dice": 0.7656,
+          "running_mean_dice": 0.609
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0009_map.png",
+          "pred": "steps/unet_2band/0009_pred.png",
+          "tile_dice": 0.5788,
+          "running_mean_dice": 0.4989
+        }
+      }
+    },
+    {
+      "i": 10,
+      "tile_id": "polygon3_r000_c009",
+      "outline_px": [
+        [
+          576.0,
+          0.0
+        ],
+        [
+          704.0,
+          0.0
+        ],
+        [
+          704.0,
+          128.0
+        ],
+        [
+          576.0,
+          128.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0010_backscatter.jpg",
+        "bathymetry": "steps/0010_bathymetry.jpg",
+        "slope": "steps/0010_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0010_map.png",
+          "pred": "steps/rf_raw/0010_pred.png",
+          "tile_dice": 0.6455,
+          "running_mean_dice": 0.6028
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0010_map.png",
+          "pred": "steps/rf_spatial/0010_pred.png",
+          "tile_dice": 0.6455,
+          "running_mean_dice": 0.6028
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0010_map.png",
+          "pred": "steps/hgb_raw/0010_pred.png",
+          "tile_dice": 0.6494,
+          "running_mean_dice": 0.5555
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0010_map.png",
+          "pred": "steps/hgb_spatial/0010_pred.png",
+          "tile_dice": 0.6494,
+          "running_mean_dice": 0.5555
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0010_map.png",
+          "pred": "steps/unet_3band/0010_pred.png",
+          "tile_dice": 0.6605,
+          "running_mean_dice": 0.6141
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0010_map.png",
+          "pred": "steps/unet_2band/0010_pred.png",
+          "tile_dice": 0.9933,
+          "running_mean_dice": 0.5483
+        }
+      }
+    },
+    {
+      "i": 11,
+      "tile_id": "polygon3_r001_c000",
+      "outline_px": [
+        [
+          0.0,
+          64.0
+        ],
+        [
+          128.0,
+          64.0
+        ],
+        [
+          128.0,
+          192.0
+        ],
+        [
+          0.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0011_backscatter.jpg",
+        "bathymetry": "steps/0011_bathymetry.jpg",
+        "slope": "steps/0011_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0011_map.png",
+          "pred": "steps/rf_raw/0011_pred.png",
+          "tile_dice": 0.2778,
+          "running_mean_dice": 0.5733
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0011_map.png",
+          "pred": "steps/rf_spatial/0011_pred.png",
+          "tile_dice": 0.2778,
+          "running_mean_dice": 0.5733
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0011_map.png",
+          "pred": "steps/hgb_raw/0011_pred.png",
+          "tile_dice": 0.2719,
+          "running_mean_dice": 0.5297
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0011_map.png",
+          "pred": "steps/hgb_spatial/0011_pred.png",
+          "tile_dice": 0.2719,
+          "running_mean_dice": 0.5297
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0011_map.png",
+          "pred": "steps/unet_3band/0011_pred.png",
+          "tile_dice": 0.296,
+          "running_mean_dice": 0.5852
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0011_map.png",
+          "pred": "steps/unet_2band/0011_pred.png",
+          "tile_dice": 0.2377,
+          "running_mean_dice": 0.5201
+        }
+      }
+    },
+    {
+      "i": 12,
+      "tile_id": "polygon3_r001_c001",
+      "outline_px": [
+        [
+          64.0,
+          64.0
+        ],
+        [
+          192.0,
+          64.0
+        ],
+        [
+          192.0,
+          192.0
+        ],
+        [
+          64.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0012_backscatter.jpg",
+        "bathymetry": "steps/0012_bathymetry.jpg",
+        "slope": "steps/0012_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0012_map.png",
+          "pred": "steps/rf_raw/0012_pred.png",
+          "tile_dice": 0.4897,
+          "running_mean_dice": 0.5663
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0012_map.png",
+          "pred": "steps/rf_spatial/0012_pred.png",
+          "tile_dice": 0.4897,
+          "running_mean_dice": 0.5663
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0012_map.png",
+          "pred": "steps/hgb_raw/0012_pred.png",
+          "tile_dice": 0.4794,
+          "running_mean_dice": 0.5255
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0012_map.png",
+          "pred": "steps/hgb_spatial/0012_pred.png",
+          "tile_dice": 0.4794,
+          "running_mean_dice": 0.5255
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0012_map.png",
+          "pred": "steps/unet_3band/0012_pred.png",
+          "tile_dice": 0.5371,
+          "running_mean_dice": 0.5812
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0012_map.png",
+          "pred": "steps/unet_2band/0012_pred.png",
+          "tile_dice": 0.4127,
+          "running_mean_dice": 0.5111
+        }
+      }
+    },
+    {
+      "i": 13,
+      "tile_id": "polygon3_r001_c002",
+      "outline_px": [
+        [
+          128.0,
+          64.0
+        ],
+        [
+          256.0,
+          64.0
+        ],
+        [
+          256.0,
+          192.0
+        ],
+        [
+          128.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0013_backscatter.jpg",
+        "bathymetry": "steps/0013_bathymetry.jpg",
+        "slope": "steps/0013_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0013_map.png",
+          "pred": "steps/rf_raw/0013_pred.png",
+          "tile_dice": 0.5026,
+          "running_mean_dice": 0.5614
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0013_map.png",
+          "pred": "steps/rf_spatial/0013_pred.png",
+          "tile_dice": 0.5026,
+          "running_mean_dice": 0.5614
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0013_map.png",
+          "pred": "steps/hgb_raw/0013_pred.png",
+          "tile_dice": 0.4768,
+          "running_mean_dice": 0.5217
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0013_map.png",
+          "pred": "steps/hgb_spatial/0013_pred.png",
+          "tile_dice": 0.4768,
+          "running_mean_dice": 0.5217
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0013_map.png",
+          "pred": "steps/unet_3band/0013_pred.png",
+          "tile_dice": 0.441,
+          "running_mean_dice": 0.5704
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0013_map.png",
+          "pred": "steps/unet_2band/0013_pred.png",
+          "tile_dice": 0.502,
+          "running_mean_dice": 0.5104
+        }
+      }
+    },
+    {
+      "i": 14,
+      "tile_id": "polygon3_r001_c003",
+      "outline_px": [
+        [
+          192.0,
+          64.0
+        ],
+        [
+          320.0,
+          64.0
+        ],
+        [
+          320.0,
+          192.0
+        ],
+        [
+          192.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0014_backscatter.jpg",
+        "bathymetry": "steps/0014_bathymetry.jpg",
+        "slope": "steps/0014_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0014_map.png",
+          "pred": "steps/rf_raw/0014_pred.png",
+          "tile_dice": 0.6043,
+          "running_mean_dice": 0.5645
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0014_map.png",
+          "pred": "steps/rf_spatial/0014_pred.png",
+          "tile_dice": 0.6043,
+          "running_mean_dice": 0.5645
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0014_map.png",
+          "pred": "steps/hgb_raw/0014_pred.png",
+          "tile_dice": 0.4865,
+          "running_mean_dice": 0.5192
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0014_map.png",
+          "pred": "steps/hgb_spatial/0014_pred.png",
+          "tile_dice": 0.4865,
+          "running_mean_dice": 0.5192
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0014_map.png",
+          "pred": "steps/unet_3band/0014_pred.png",
+          "tile_dice": 0.4669,
+          "running_mean_dice": 0.563
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0014_map.png",
+          "pred": "steps/unet_2band/0014_pred.png",
+          "tile_dice": 0.4712,
+          "running_mean_dice": 0.5076
+        }
+      }
+    },
+    {
+      "i": 15,
+      "tile_id": "polygon3_r001_c004",
+      "outline_px": [
+        [
+          256.0,
+          64.0
+        ],
+        [
+          384.0,
+          64.0
+        ],
+        [
+          384.0,
+          192.0
+        ],
+        [
+          256.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0015_backscatter.jpg",
+        "bathymetry": "steps/0015_bathymetry.jpg",
+        "slope": "steps/0015_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0015_map.png",
+          "pred": "steps/rf_raw/0015_pred.png",
+          "tile_dice": 0.6548,
+          "running_mean_dice": 0.5705
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0015_map.png",
+          "pred": "steps/rf_spatial/0015_pred.png",
+          "tile_dice": 0.6548,
+          "running_mean_dice": 0.5705
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0015_map.png",
+          "pred": "steps/hgb_raw/0015_pred.png",
+          "tile_dice": 0.5966,
+          "running_mean_dice": 0.5244
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0015_map.png",
+          "pred": "steps/hgb_spatial/0015_pred.png",
+          "tile_dice": 0.5966,
+          "running_mean_dice": 0.5244
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0015_map.png",
+          "pred": "steps/unet_3band/0015_pred.png",
+          "tile_dice": 0.9668,
+          "running_mean_dice": 0.59
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0015_map.png",
+          "pred": "steps/unet_2band/0015_pred.png",
+          "tile_dice": 0.9139,
+          "running_mean_dice": 0.5347
+        }
+      }
+    },
+    {
+      "i": 16,
+      "tile_id": "polygon3_r001_c005",
+      "outline_px": [
+        [
+          320.0,
+          64.0
+        ],
+        [
+          448.0,
+          64.0
+        ],
+        [
+          448.0,
+          192.0
+        ],
+        [
+          320.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0016_backscatter.jpg",
+        "bathymetry": "steps/0016_bathymetry.jpg",
+        "slope": "steps/0016_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0016_map.png",
+          "pred": "steps/rf_raw/0016_pred.png",
+          "tile_dice": 0.9995,
+          "running_mean_dice": 0.5973
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0016_map.png",
+          "pred": "steps/rf_spatial/0016_pred.png",
+          "tile_dice": 0.9995,
+          "running_mean_dice": 0.5973
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0016_map.png",
+          "pred": "steps/hgb_raw/0016_pred.png",
+          "tile_dice": 0.7994,
+          "running_mean_dice": 0.5416
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0016_map.png",
+          "pred": "steps/hgb_spatial/0016_pred.png",
+          "tile_dice": 0.7994,
+          "running_mean_dice": 0.5416
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0016_map.png",
+          "pred": "steps/unet_3band/0016_pred.png",
+          "tile_dice": 0.615,
+          "running_mean_dice": 0.5915
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0016_map.png",
+          "pred": "steps/unet_2band/0016_pred.png",
+          "tile_dice": 0.7322,
+          "running_mean_dice": 0.5471
+        }
+      }
+    },
+    {
+      "i": 17,
+      "tile_id": "polygon3_r001_c006",
+      "outline_px": [
+        [
+          384.0,
+          64.0
+        ],
+        [
+          512.0,
+          64.0
+        ],
+        [
+          512.0,
+          192.0
+        ],
+        [
+          384.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0017_backscatter.jpg",
+        "bathymetry": "steps/0017_bathymetry.jpg",
+        "slope": "steps/0017_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0017_map.png",
+          "pred": "steps/rf_raw/0017_pred.png",
+          "tile_dice": 0.9998,
+          "running_mean_dice": 0.621
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0017_map.png",
+          "pred": "steps/rf_spatial/0017_pred.png",
+          "tile_dice": 0.9998,
+          "running_mean_dice": 0.621
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0017_map.png",
+          "pred": "steps/hgb_raw/0017_pred.png",
+          "tile_dice": 0.7992,
+          "running_mean_dice": 0.5567
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0017_map.png",
+          "pred": "steps/hgb_spatial/0017_pred.png",
+          "tile_dice": 0.7992,
+          "running_mean_dice": 0.5567
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0017_map.png",
+          "pred": "steps/unet_3band/0017_pred.png",
+          "tile_dice": 0.7626,
+          "running_mean_dice": 0.6016
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0017_map.png",
+          "pred": "steps/unet_2band/0017_pred.png",
+          "tile_dice": 0.8148,
+          "running_mean_dice": 0.5628
+        }
+      }
+    },
+    {
+      "i": 18,
+      "tile_id": "polygon3_r001_c007",
+      "outline_px": [
+        [
+          448.0,
+          64.0
+        ],
+        [
+          576.0,
+          64.0
+        ],
+        [
+          576.0,
+          192.0
+        ],
+        [
+          448.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0018_backscatter.jpg",
+        "bathymetry": "steps/0018_bathymetry.jpg",
+        "slope": "steps/0018_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0018_map.png",
+          "pred": "steps/rf_raw/0018_pred.png",
+          "tile_dice": 0.798,
+          "running_mean_dice": 0.6308
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0018_map.png",
+          "pred": "steps/rf_spatial/0018_pred.png",
+          "tile_dice": 0.798,
+          "running_mean_dice": 0.6308
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0018_map.png",
+          "pred": "steps/hgb_raw/0018_pred.png",
+          "tile_dice": 0.6628,
+          "running_mean_dice": 0.5626
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0018_map.png",
+          "pred": "steps/hgb_spatial/0018_pred.png",
+          "tile_dice": 0.6628,
+          "running_mean_dice": 0.5626
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0018_map.png",
+          "pred": "steps/unet_3band/0018_pred.png",
+          "tile_dice": 0.6611,
+          "running_mean_dice": 0.6049
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0018_map.png",
+          "pred": "steps/unet_2band/0018_pred.png",
+          "tile_dice": 0.6462,
+          "running_mean_dice": 0.5674
+        }
+      }
+    },
+    {
+      "i": 19,
+      "tile_id": "polygon3_r001_c008",
+      "outline_px": [
+        [
+          512.0,
+          64.0
+        ],
+        [
+          640.0,
+          64.0
+        ],
+        [
+          640.0,
+          192.0
+        ],
+        [
+          512.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0019_backscatter.jpg",
+        "bathymetry": "steps/0019_bathymetry.jpg",
+        "slope": "steps/0019_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0019_map.png",
+          "pred": "steps/rf_raw/0019_pred.png",
+          "tile_dice": 0.7146,
+          "running_mean_dice": 0.6352
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0019_map.png",
+          "pred": "steps/rf_spatial/0019_pred.png",
+          "tile_dice": 0.7146,
+          "running_mean_dice": 0.6352
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0019_map.png",
+          "pred": "steps/hgb_raw/0019_pred.png",
+          "tile_dice": 0.7084,
+          "running_mean_dice": 0.5703
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0019_map.png",
+          "pred": "steps/hgb_spatial/0019_pred.png",
+          "tile_dice": 0.7084,
+          "running_mean_dice": 0.5703
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0019_map.png",
+          "pred": "steps/unet_3band/0019_pred.png",
+          "tile_dice": 0.7155,
+          "running_mean_dice": 0.6107
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0019_map.png",
+          "pred": "steps/unet_2band/0019_pred.png",
+          "tile_dice": 0.5469,
+          "running_mean_dice": 0.5664
+        }
+      }
+    },
+    {
+      "i": 20,
+      "tile_id": "polygon3_r001_c009",
+      "outline_px": [
+        [
+          576.0,
+          64.0
+        ],
+        [
+          704.0,
+          64.0
+        ],
+        [
+          704.0,
+          192.0
+        ],
+        [
+          576.0,
+          192.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0020_backscatter.jpg",
+        "bathymetry": "steps/0020_bathymetry.jpg",
+        "slope": "steps/0020_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0020_map.png",
+          "pred": "steps/rf_raw/0020_pred.png",
+          "tile_dice": 0.6317,
+          "running_mean_dice": 0.635
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0020_map.png",
+          "pred": "steps/rf_spatial/0020_pred.png",
+          "tile_dice": 0.6317,
+          "running_mean_dice": 0.635
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0020_map.png",
+          "pred": "steps/hgb_raw/0020_pred.png",
+          "tile_dice": 0.6431,
+          "running_mean_dice": 0.5739
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0020_map.png",
+          "pred": "steps/hgb_spatial/0020_pred.png",
+          "tile_dice": 0.6431,
+          "running_mean_dice": 0.5739
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0020_map.png",
+          "pred": "steps/unet_3band/0020_pred.png",
+          "tile_dice": 0.6607,
+          "running_mean_dice": 0.6132
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0020_map.png",
+          "pred": "steps/unet_2band/0020_pred.png",
+          "tile_dice": 0.6564,
+          "running_mean_dice": 0.5709
+        }
+      }
+    },
+    {
+      "i": 21,
+      "tile_id": "polygon3_r002_c000",
+      "outline_px": [
+        [
+          0.0,
+          128.0
+        ],
+        [
+          128.0,
+          128.0
+        ],
+        [
+          128.0,
+          256.0
+        ],
+        [
+          0.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0021_backscatter.jpg",
+        "bathymetry": "steps/0021_bathymetry.jpg",
+        "slope": "steps/0021_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0021_map.png",
+          "pred": "steps/rf_raw/0021_pred.png",
+          "tile_dice": 0.4599,
+          "running_mean_dice": 0.6267
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0021_map.png",
+          "pred": "steps/rf_spatial/0021_pred.png",
+          "tile_dice": 0.4599,
+          "running_mean_dice": 0.6267
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0021_map.png",
+          "pred": "steps/hgb_raw/0021_pred.png",
+          "tile_dice": 0.451,
+          "running_mean_dice": 0.5681
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0021_map.png",
+          "pred": "steps/hgb_spatial/0021_pred.png",
+          "tile_dice": 0.451,
+          "running_mean_dice": 0.5681
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0021_map.png",
+          "pred": "steps/unet_3band/0021_pred.png",
+          "tile_dice": 0.6705,
+          "running_mean_dice": 0.6159
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0021_map.png",
+          "pred": "steps/unet_2band/0021_pred.png",
+          "tile_dice": 0.6224,
+          "running_mean_dice": 0.5733
+        }
+      }
+    },
+    {
+      "i": 22,
+      "tile_id": "polygon3_r002_c001",
+      "outline_px": [
+        [
+          64.0,
+          128.0
+        ],
+        [
+          192.0,
+          128.0
+        ],
+        [
+          192.0,
+          256.0
+        ],
+        [
+          64.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0022_backscatter.jpg",
+        "bathymetry": "steps/0022_bathymetry.jpg",
+        "slope": "steps/0022_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0022_map.png",
+          "pred": "steps/rf_raw/0022_pred.png",
+          "tile_dice": 0.5515,
+          "running_mean_dice": 0.6233
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0022_map.png",
+          "pred": "steps/rf_spatial/0022_pred.png",
+          "tile_dice": 0.5515,
+          "running_mean_dice": 0.6233
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0022_map.png",
+          "pred": "steps/hgb_raw/0022_pred.png",
+          "tile_dice": 0.5386,
+          "running_mean_dice": 0.5667
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0022_map.png",
+          "pred": "steps/hgb_spatial/0022_pred.png",
+          "tile_dice": 0.5386,
+          "running_mean_dice": 0.5667
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0022_map.png",
+          "pred": "steps/unet_3band/0022_pred.png",
+          "tile_dice": 0.7326,
+          "running_mean_dice": 0.6212
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0022_map.png",
+          "pred": "steps/unet_2band/0022_pred.png",
+          "tile_dice": 0.7382,
+          "running_mean_dice": 0.5808
+        }
+      }
+    },
+    {
+      "i": 23,
+      "tile_id": "polygon3_r002_c002",
+      "outline_px": [
+        [
+          128.0,
+          128.0
+        ],
+        [
+          256.0,
+          128.0
+        ],
+        [
+          256.0,
+          256.0
+        ],
+        [
+          128.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0023_backscatter.jpg",
+        "bathymetry": "steps/0023_bathymetry.jpg",
+        "slope": "steps/0023_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0023_map.png",
+          "pred": "steps/rf_raw/0023_pred.png",
+          "tile_dice": 0.5163,
+          "running_mean_dice": 0.6186
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0023_map.png",
+          "pred": "steps/rf_spatial/0023_pred.png",
+          "tile_dice": 0.5163,
+          "running_mean_dice": 0.6186
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0023_map.png",
+          "pred": "steps/hgb_raw/0023_pred.png",
+          "tile_dice": 0.513,
+          "running_mean_dice": 0.5644
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0023_map.png",
+          "pred": "steps/hgb_spatial/0023_pred.png",
+          "tile_dice": 0.513,
+          "running_mean_dice": 0.5644
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0023_map.png",
+          "pred": "steps/unet_3band/0023_pred.png",
+          "tile_dice": 0.5208,
+          "running_mean_dice": 0.6169
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0023_map.png",
+          "pred": "steps/unet_2band/0023_pred.png",
+          "tile_dice": 0.5315,
+          "running_mean_dice": 0.5787
+        }
+      }
+    },
+    {
+      "i": 24,
+      "tile_id": "polygon3_r002_c003",
+      "outline_px": [
+        [
+          192.0,
+          128.0
+        ],
+        [
+          320.0,
+          128.0
+        ],
+        [
+          320.0,
+          256.0
+        ],
+        [
+          192.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0024_backscatter.jpg",
+        "bathymetry": "steps/0024_bathymetry.jpg",
+        "slope": "steps/0024_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0024_map.png",
+          "pred": "steps/rf_raw/0024_pred.png",
+          "tile_dice": 0.3326,
+          "running_mean_dice": 0.6067
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0024_map.png",
+          "pred": "steps/rf_spatial/0024_pred.png",
+          "tile_dice": 0.3326,
+          "running_mean_dice": 0.6067
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0024_map.png",
+          "pred": "steps/hgb_raw/0024_pred.png",
+          "tile_dice": 0.3319,
+          "running_mean_dice": 0.5547
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0024_map.png",
+          "pred": "steps/hgb_spatial/0024_pred.png",
+          "tile_dice": 0.3319,
+          "running_mean_dice": 0.5547
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0024_map.png",
+          "pred": "steps/unet_3band/0024_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6328
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0024_map.png",
+          "pred": "steps/unet_2band/0024_pred.png",
+          "tile_dice": 0.499,
+          "running_mean_dice": 0.5753
+        }
+      }
+    },
+    {
+      "i": 25,
+      "tile_id": "polygon3_r002_c004",
+      "outline_px": [
+        [
+          256.0,
+          128.0
+        ],
+        [
+          384.0,
+          128.0
+        ],
+        [
+          384.0,
+          256.0
+        ],
+        [
+          256.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0025_backscatter.jpg",
+        "bathymetry": "steps/0025_bathymetry.jpg",
+        "slope": "steps/0025_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0025_map.png",
+          "pred": "steps/rf_raw/0025_pred.png",
+          "tile_dice": 0.994,
+          "running_mean_dice": 0.6222
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0025_map.png",
+          "pred": "steps/rf_spatial/0025_pred.png",
+          "tile_dice": 0.994,
+          "running_mean_dice": 0.6222
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0025_map.png",
+          "pred": "steps/hgb_raw/0025_pred.png",
+          "tile_dice": 0.7933,
+          "running_mean_dice": 0.5643
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0025_map.png",
+          "pred": "steps/hgb_spatial/0025_pred.png",
+          "tile_dice": 0.7933,
+          "running_mean_dice": 0.5643
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0025_map.png",
+          "pred": "steps/unet_3band/0025_pred.png",
+          "tile_dice": 0.6225,
+          "running_mean_dice": 0.6324
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0025_map.png",
+          "pred": "steps/unet_2band/0025_pred.png",
+          "tile_dice": 0.6244,
+          "running_mean_dice": 0.5773
+        }
+      }
+    },
+    {
+      "i": 26,
+      "tile_id": "polygon3_r002_c005",
+      "outline_px": [
+        [
+          320.0,
+          128.0
+        ],
+        [
+          448.0,
+          128.0
+        ],
+        [
+          448.0,
+          256.0
+        ],
+        [
+          320.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0026_backscatter.jpg",
+        "bathymetry": "steps/0026_bathymetry.jpg",
+        "slope": "steps/0026_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0026_map.png",
+          "pred": "steps/rf_raw/0026_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6367
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0026_map.png",
+          "pred": "steps/rf_spatial/0026_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6367
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0026_map.png",
+          "pred": "steps/hgb_raw/0026_pred.png",
+          "tile_dice": 0.7876,
+          "running_mean_dice": 0.5728
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0026_map.png",
+          "pred": "steps/hgb_spatial/0026_pred.png",
+          "tile_dice": 0.7876,
+          "running_mean_dice": 0.5728
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0026_map.png",
+          "pred": "steps/unet_3band/0026_pred.png",
+          "tile_dice": 0.7626,
+          "running_mean_dice": 0.6374
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0026_map.png",
+          "pred": "steps/unet_2band/0026_pred.png",
+          "tile_dice": 0.8886,
+          "running_mean_dice": 0.5893
+        }
+      }
+    },
+    {
+      "i": 27,
+      "tile_id": "polygon3_r002_c006",
+      "outline_px": [
+        [
+          384.0,
+          128.0
+        ],
+        [
+          512.0,
+          128.0
+        ],
+        [
+          512.0,
+          256.0
+        ],
+        [
+          384.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0027_backscatter.jpg",
+        "bathymetry": "steps/0027_bathymetry.jpg",
+        "slope": "steps/0027_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0027_map.png",
+          "pred": "steps/rf_raw/0027_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6502
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0027_map.png",
+          "pred": "steps/rf_spatial/0027_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6502
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0027_map.png",
+          "pred": "steps/hgb_raw/0027_pred.png",
+          "tile_dice": 0.7476,
+          "running_mean_dice": 0.5793
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0027_map.png",
+          "pred": "steps/hgb_spatial/0027_pred.png",
+          "tile_dice": 0.7476,
+          "running_mean_dice": 0.5793
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0027_map.png",
+          "pred": "steps/unet_3band/0027_pred.png",
+          "tile_dice": 0.7282,
+          "running_mean_dice": 0.6408
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0027_map.png",
+          "pred": "steps/unet_2band/0027_pred.png",
+          "tile_dice": 0.8389,
+          "running_mean_dice": 0.5985
+        }
+      }
+    },
+    {
+      "i": 28,
+      "tile_id": "polygon3_r002_c007",
+      "outline_px": [
+        [
+          448.0,
+          128.0
+        ],
+        [
+          576.0,
+          128.0
+        ],
+        [
+          576.0,
+          256.0
+        ],
+        [
+          448.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0028_backscatter.jpg",
+        "bathymetry": "steps/0028_bathymetry.jpg",
+        "slope": "steps/0028_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0028_map.png",
+          "pred": "steps/rf_raw/0028_pred.png",
+          "tile_dice": 0.8838,
+          "running_mean_dice": 0.6585
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0028_map.png",
+          "pred": "steps/rf_spatial/0028_pred.png",
+          "tile_dice": 0.8838,
+          "running_mean_dice": 0.6585
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0028_map.png",
+          "pred": "steps/hgb_raw/0028_pred.png",
+          "tile_dice": 0.7489,
+          "running_mean_dice": 0.5854
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0028_map.png",
+          "pred": "steps/hgb_spatial/0028_pred.png",
+          "tile_dice": 0.7489,
+          "running_mean_dice": 0.5854
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0028_map.png",
+          "pred": "steps/unet_3band/0028_pred.png",
+          "tile_dice": 0.5429,
+          "running_mean_dice": 0.6373
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0028_map.png",
+          "pred": "steps/unet_2band/0028_pred.png",
+          "tile_dice": 0.7298,
+          "running_mean_dice": 0.6032
+        }
+      }
+    },
+    {
+      "i": 29,
+      "tile_id": "polygon3_r002_c008",
+      "outline_px": [
+        [
+          512.0,
+          128.0
+        ],
+        [
+          640.0,
+          128.0
+        ],
+        [
+          640.0,
+          256.0
+        ],
+        [
+          512.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0029_backscatter.jpg",
+        "bathymetry": "steps/0029_bathymetry.jpg",
+        "slope": "steps/0029_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0029_map.png",
+          "pred": "steps/rf_raw/0029_pred.png",
+          "tile_dice": 0.6255,
+          "running_mean_dice": 0.6574
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0029_map.png",
+          "pred": "steps/rf_spatial/0029_pred.png",
+          "tile_dice": 0.6255,
+          "running_mean_dice": 0.6574
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0029_map.png",
+          "pred": "steps/hgb_raw/0029_pred.png",
+          "tile_dice": 0.6173,
+          "running_mean_dice": 0.5865
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0029_map.png",
+          "pred": "steps/hgb_spatial/0029_pred.png",
+          "tile_dice": 0.6173,
+          "running_mean_dice": 0.5865
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0029_map.png",
+          "pred": "steps/unet_3band/0029_pred.png",
+          "tile_dice": 0.5931,
+          "running_mean_dice": 0.6358
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0029_map.png",
+          "pred": "steps/unet_2band/0029_pred.png",
+          "tile_dice": 0.6144,
+          "running_mean_dice": 0.6036
+        }
+      }
+    },
+    {
+      "i": 30,
+      "tile_id": "polygon3_r002_c009",
+      "outline_px": [
+        [
+          576.0,
+          128.0
+        ],
+        [
+          704.0,
+          128.0
+        ],
+        [
+          704.0,
+          256.0
+        ],
+        [
+          576.0,
+          256.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0030_backscatter.jpg",
+        "bathymetry": "steps/0030_bathymetry.jpg",
+        "slope": "steps/0030_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0030_map.png",
+          "pred": "steps/rf_raw/0030_pred.png",
+          "tile_dice": 0.6124,
+          "running_mean_dice": 0.6559
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0030_map.png",
+          "pred": "steps/rf_spatial/0030_pred.png",
+          "tile_dice": 0.6124,
+          "running_mean_dice": 0.6559
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0030_map.png",
+          "pred": "steps/hgb_raw/0030_pred.png",
+          "tile_dice": 0.6333,
+          "running_mean_dice": 0.588
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0030_map.png",
+          "pred": "steps/hgb_spatial/0030_pred.png",
+          "tile_dice": 0.6333,
+          "running_mean_dice": 0.588
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0030_map.png",
+          "pred": "steps/unet_3band/0030_pred.png",
+          "tile_dice": 0.6574,
+          "running_mean_dice": 0.6365
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0030_map.png",
+          "pred": "steps/unet_2band/0030_pred.png",
+          "tile_dice": 0.6406,
+          "running_mean_dice": 0.6048
+        }
+      }
+    },
+    {
+      "i": 31,
+      "tile_id": "polygon3_r003_c000",
+      "outline_px": [
+        [
+          0.0,
+          192.0
+        ],
+        [
+          128.0,
+          192.0
+        ],
+        [
+          128.0,
+          320.0
+        ],
+        [
+          0.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0031_backscatter.jpg",
+        "bathymetry": "steps/0031_bathymetry.jpg",
+        "slope": "steps/0031_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0031_map.png",
+          "pred": "steps/rf_raw/0031_pred.png",
+          "tile_dice": 0.5176,
+          "running_mean_dice": 0.6514
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0031_map.png",
+          "pred": "steps/rf_spatial/0031_pred.png",
+          "tile_dice": 0.5176,
+          "running_mean_dice": 0.6514
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0031_map.png",
+          "pred": "steps/hgb_raw/0031_pred.png",
+          "tile_dice": 0.5122,
+          "running_mean_dice": 0.5856
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0031_map.png",
+          "pred": "steps/hgb_spatial/0031_pred.png",
+          "tile_dice": 0.5122,
+          "running_mean_dice": 0.5856
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0031_map.png",
+          "pred": "steps/unet_3band/0031_pred.png",
+          "tile_dice": 0.6754,
+          "running_mean_dice": 0.6377
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0031_map.png",
+          "pred": "steps/unet_2band/0031_pred.png",
+          "tile_dice": 0.7756,
+          "running_mean_dice": 0.6103
+        }
+      }
+    },
+    {
+      "i": 32,
+      "tile_id": "polygon3_r003_c001",
+      "outline_px": [
+        [
+          64.0,
+          192.0
+        ],
+        [
+          192.0,
+          192.0
+        ],
+        [
+          192.0,
+          320.0
+        ],
+        [
+          64.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0032_backscatter.jpg",
+        "bathymetry": "steps/0032_bathymetry.jpg",
+        "slope": "steps/0032_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0032_map.png",
+          "pred": "steps/rf_raw/0032_pred.png",
+          "tile_dice": 0.5441,
+          "running_mean_dice": 0.6481
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0032_map.png",
+          "pred": "steps/rf_spatial/0032_pred.png",
+          "tile_dice": 0.5441,
+          "running_mean_dice": 0.6481
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0032_map.png",
+          "pred": "steps/hgb_raw/0032_pred.png",
+          "tile_dice": 0.5351,
+          "running_mean_dice": 0.584
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0032_map.png",
+          "pred": "steps/hgb_spatial/0032_pred.png",
+          "tile_dice": 0.5351,
+          "running_mean_dice": 0.584
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0032_map.png",
+          "pred": "steps/unet_3band/0032_pred.png",
+          "tile_dice": 0.6204,
+          "running_mean_dice": 0.6372
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0032_map.png",
+          "pred": "steps/unet_2band/0032_pred.png",
+          "tile_dice": 0.7926,
+          "running_mean_dice": 0.616
+        }
+      }
+    },
+    {
+      "i": 33,
+      "tile_id": "polygon3_r003_c002",
+      "outline_px": [
+        [
+          128.0,
+          192.0
+        ],
+        [
+          256.0,
+          192.0
+        ],
+        [
+          256.0,
+          320.0
+        ],
+        [
+          128.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0033_backscatter.jpg",
+        "bathymetry": "steps/0033_bathymetry.jpg",
+        "slope": "steps/0033_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0033_map.png",
+          "pred": "steps/rf_raw/0033_pred.png",
+          "tile_dice": 0.6094,
+          "running_mean_dice": 0.6469
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0033_map.png",
+          "pred": "steps/rf_spatial/0033_pred.png",
+          "tile_dice": 0.6094,
+          "running_mean_dice": 0.6469
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0033_map.png",
+          "pred": "steps/hgb_raw/0033_pred.png",
+          "tile_dice": 0.6052,
+          "running_mean_dice": 0.5847
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0033_map.png",
+          "pred": "steps/hgb_spatial/0033_pred.png",
+          "tile_dice": 0.6052,
+          "running_mean_dice": 0.5847
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0033_map.png",
+          "pred": "steps/unet_3band/0033_pred.png",
+          "tile_dice": 0.9533,
+          "running_mean_dice": 0.6468
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0033_map.png",
+          "pred": "steps/unet_2band/0033_pred.png",
+          "tile_dice": 0.975,
+          "running_mean_dice": 0.6269
+        }
+      }
+    },
+    {
+      "i": 34,
+      "tile_id": "polygon3_r003_c003",
+      "outline_px": [
+        [
+          192.0,
+          192.0
+        ],
+        [
+          320.0,
+          192.0
+        ],
+        [
+          320.0,
+          320.0
+        ],
+        [
+          192.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0034_backscatter.jpg",
+        "bathymetry": "steps/0034_bathymetry.jpg",
+        "slope": "steps/0034_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0034_map.png",
+          "pred": "steps/rf_raw/0034_pred.png",
+          "tile_dice": 0.6631,
+          "running_mean_dice": 0.6474
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0034_map.png",
+          "pred": "steps/rf_spatial/0034_pred.png",
+          "tile_dice": 0.6631,
+          "running_mean_dice": 0.6474
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0034_map.png",
+          "pred": "steps/hgb_raw/0034_pred.png",
+          "tile_dice": 0.6116,
+          "running_mean_dice": 0.5855
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0034_map.png",
+          "pred": "steps/hgb_spatial/0034_pred.png",
+          "tile_dice": 0.6116,
+          "running_mean_dice": 0.5855
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0034_map.png",
+          "pred": "steps/unet_3band/0034_pred.png",
+          "tile_dice": 0.9734,
+          "running_mean_dice": 0.6564
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0034_map.png",
+          "pred": "steps/unet_2band/0034_pred.png",
+          "tile_dice": 0.9519,
+          "running_mean_dice": 0.6365
+        }
+      }
+    },
+    {
+      "i": 35,
+      "tile_id": "polygon3_r003_c004",
+      "outline_px": [
+        [
+          256.0,
+          192.0
+        ],
+        [
+          384.0,
+          192.0
+        ],
+        [
+          384.0,
+          320.0
+        ],
+        [
+          256.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0035_backscatter.jpg",
+        "bathymetry": "steps/0035_bathymetry.jpg",
+        "slope": "steps/0035_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0035_map.png",
+          "pred": "steps/rf_raw/0035_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.6575
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0035_map.png",
+          "pred": "steps/rf_spatial/0035_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.6575
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0035_map.png",
+          "pred": "steps/hgb_raw/0035_pred.png",
+          "tile_dice": 0.8245,
+          "running_mean_dice": 0.5923
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0035_map.png",
+          "pred": "steps/hgb_spatial/0035_pred.png",
+          "tile_dice": 0.8245,
+          "running_mean_dice": 0.5923
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0035_map.png",
+          "pred": "steps/unet_3band/0035_pred.png",
+          "tile_dice": 0.587,
+          "running_mean_dice": 0.6544
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0035_map.png",
+          "pred": "steps/unet_2band/0035_pred.png",
+          "tile_dice": 0.9272,
+          "running_mean_dice": 0.6448
+        }
+      }
+    },
+    {
+      "i": 36,
+      "tile_id": "polygon3_r003_c005",
+      "outline_px": [
+        [
+          320.0,
+          192.0
+        ],
+        [
+          448.0,
+          192.0
+        ],
+        [
+          448.0,
+          320.0
+        ],
+        [
+          320.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0036_backscatter.jpg",
+        "bathymetry": "steps/0036_bathymetry.jpg",
+        "slope": "steps/0036_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0036_map.png",
+          "pred": "steps/rf_raw/0036_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.667
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0036_map.png",
+          "pred": "steps/rf_spatial/0036_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.667
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0036_map.png",
+          "pred": "steps/hgb_raw/0036_pred.png",
+          "tile_dice": 0.745,
+          "running_mean_dice": 0.5965
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0036_map.png",
+          "pred": "steps/hgb_spatial/0036_pred.png",
+          "tile_dice": 0.745,
+          "running_mean_dice": 0.5965
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0036_map.png",
+          "pred": "steps/unet_3band/0036_pred.png",
+          "tile_dice": 0.6406,
+          "running_mean_dice": 0.654
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0036_map.png",
+          "pred": "steps/unet_2band/0036_pred.png",
+          "tile_dice": 0.8341,
+          "running_mean_dice": 0.65
+        }
+      }
+    },
+    {
+      "i": 37,
+      "tile_id": "polygon3_r003_c006",
+      "outline_px": [
+        [
+          384.0,
+          192.0
+        ],
+        [
+          512.0,
+          192.0
+        ],
+        [
+          512.0,
+          320.0
+        ],
+        [
+          384.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0037_backscatter.jpg",
+        "bathymetry": "steps/0037_bathymetry.jpg",
+        "slope": "steps/0037_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0037_map.png",
+          "pred": "steps/rf_raw/0037_pred.png",
+          "tile_dice": 0.9993,
+          "running_mean_dice": 0.676
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0037_map.png",
+          "pred": "steps/rf_spatial/0037_pred.png",
+          "tile_dice": 0.9993,
+          "running_mean_dice": 0.676
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0037_map.png",
+          "pred": "steps/hgb_raw/0037_pred.png",
+          "tile_dice": 0.7265,
+          "running_mean_dice": 0.6
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0037_map.png",
+          "pred": "steps/hgb_spatial/0037_pred.png",
+          "tile_dice": 0.7265,
+          "running_mean_dice": 0.6
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0037_map.png",
+          "pred": "steps/unet_3band/0037_pred.png",
+          "tile_dice": 0.6257,
+          "running_mean_dice": 0.6533
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0037_map.png",
+          "pred": "steps/unet_2band/0037_pred.png",
+          "tile_dice": 0.8077,
+          "running_mean_dice": 0.6543
+        }
+      }
+    },
+    {
+      "i": 38,
+      "tile_id": "polygon3_r003_c007",
+      "outline_px": [
+        [
+          448.0,
+          192.0
+        ],
+        [
+          576.0,
+          192.0
+        ],
+        [
+          576.0,
+          320.0
+        ],
+        [
+          448.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0038_backscatter.jpg",
+        "bathymetry": "steps/0038_bathymetry.jpg",
+        "slope": "steps/0038_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0038_map.png",
+          "pred": "steps/rf_raw/0038_pred.png",
+          "tile_dice": 0.9717,
+          "running_mean_dice": 0.6837
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0038_map.png",
+          "pred": "steps/rf_spatial/0038_pred.png",
+          "tile_dice": 0.9717,
+          "running_mean_dice": 0.6837
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0038_map.png",
+          "pred": "steps/hgb_raw/0038_pred.png",
+          "tile_dice": 0.6676,
+          "running_mean_dice": 0.6018
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0038_map.png",
+          "pred": "steps/hgb_spatial/0038_pred.png",
+          "tile_dice": 0.6676,
+          "running_mean_dice": 0.6018
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0038_map.png",
+          "pred": "steps/unet_3band/0038_pred.png",
+          "tile_dice": 0.5891,
+          "running_mean_dice": 0.6516
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0038_map.png",
+          "pred": "steps/unet_2band/0038_pred.png",
+          "tile_dice": 0.7142,
+          "running_mean_dice": 0.6559
+        }
+      }
+    },
+    {
+      "i": 39,
+      "tile_id": "polygon3_r003_c008",
+      "outline_px": [
+        [
+          512.0,
+          192.0
+        ],
+        [
+          640.0,
+          192.0
+        ],
+        [
+          640.0,
+          320.0
+        ],
+        [
+          512.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0039_backscatter.jpg",
+        "bathymetry": "steps/0039_bathymetry.jpg",
+        "slope": "steps/0039_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0039_map.png",
+          "pred": "steps/rf_raw/0039_pred.png",
+          "tile_dice": 0.5839,
+          "running_mean_dice": 0.6812
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0039_map.png",
+          "pred": "steps/rf_spatial/0039_pred.png",
+          "tile_dice": 0.5839,
+          "running_mean_dice": 0.6812
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0039_map.png",
+          "pred": "steps/hgb_raw/0039_pred.png",
+          "tile_dice": 0.5983,
+          "running_mean_dice": 0.6017
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0039_map.png",
+          "pred": "steps/hgb_spatial/0039_pred.png",
+          "tile_dice": 0.5983,
+          "running_mean_dice": 0.6017
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0039_map.png",
+          "pred": "steps/unet_3band/0039_pred.png",
+          "tile_dice": 0.6352,
+          "running_mean_dice": 0.6511
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0039_map.png",
+          "pred": "steps/unet_2band/0039_pred.png",
+          "tile_dice": 0.5773,
+          "running_mean_dice": 0.6539
+        }
+      }
+    },
+    {
+      "i": 40,
+      "tile_id": "polygon3_r003_c009",
+      "outline_px": [
+        [
+          576.0,
+          192.0
+        ],
+        [
+          704.0,
+          192.0
+        ],
+        [
+          704.0,
+          320.0
+        ],
+        [
+          576.0,
+          320.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0040_backscatter.jpg",
+        "bathymetry": "steps/0040_bathymetry.jpg",
+        "slope": "steps/0040_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0040_map.png",
+          "pred": "steps/rf_raw/0040_pred.png",
+          "tile_dice": 0.3306,
+          "running_mean_dice": 0.6724
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0040_map.png",
+          "pred": "steps/rf_spatial/0040_pred.png",
+          "tile_dice": 0.3306,
+          "running_mean_dice": 0.6724
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0040_map.png",
+          "pred": "steps/hgb_raw/0040_pred.png",
+          "tile_dice": 0.3312,
+          "running_mean_dice": 0.595
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0040_map.png",
+          "pred": "steps/hgb_spatial/0040_pred.png",
+          "tile_dice": 0.3312,
+          "running_mean_dice": 0.595
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0040_map.png",
+          "pred": "steps/unet_3band/0040_pred.png",
+          "tile_dice": 0.4999,
+          "running_mean_dice": 0.6474
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0040_map.png",
+          "pred": "steps/unet_2band/0040_pred.png",
+          "tile_dice": 0.3285,
+          "running_mean_dice": 0.6457
+        }
+      }
+    },
+    {
+      "i": 41,
+      "tile_id": "polygon3_r004_c000",
+      "outline_px": [
+        [
+          0.0,
+          256.0
+        ],
+        [
+          128.0,
+          256.0
+        ],
+        [
+          128.0,
+          384.0
+        ],
+        [
+          0.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0041_backscatter.jpg",
+        "bathymetry": "steps/0041_bathymetry.jpg",
+        "slope": "steps/0041_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0041_map.png",
+          "pred": "steps/rf_raw/0041_pred.png",
+          "tile_dice": 0.5461,
+          "running_mean_dice": 0.6693
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0041_map.png",
+          "pred": "steps/rf_spatial/0041_pred.png",
+          "tile_dice": 0.5461,
+          "running_mean_dice": 0.6693
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0041_map.png",
+          "pred": "steps/hgb_raw/0041_pred.png",
+          "tile_dice": 0.5459,
+          "running_mean_dice": 0.5938
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0041_map.png",
+          "pred": "steps/hgb_spatial/0041_pred.png",
+          "tile_dice": 0.5459,
+          "running_mean_dice": 0.5938
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0041_map.png",
+          "pred": "steps/unet_3band/0041_pred.png",
+          "tile_dice": 0.4833,
+          "running_mean_dice": 0.6434
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0041_map.png",
+          "pred": "steps/unet_2band/0041_pred.png",
+          "tile_dice": 0.651,
+          "running_mean_dice": 0.6459
+        }
+      }
+    },
+    {
+      "i": 42,
+      "tile_id": "polygon3_r004_c001",
+      "outline_px": [
+        [
+          64.0,
+          256.0
+        ],
+        [
+          192.0,
+          256.0
+        ],
+        [
+          192.0,
+          384.0
+        ],
+        [
+          64.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0042_backscatter.jpg",
+        "bathymetry": "steps/0042_bathymetry.jpg",
+        "slope": "steps/0042_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0042_map.png",
+          "pred": "steps/rf_raw/0042_pred.png",
+          "tile_dice": 0.6131,
+          "running_mean_dice": 0.668
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0042_map.png",
+          "pred": "steps/rf_spatial/0042_pred.png",
+          "tile_dice": 0.6131,
+          "running_mean_dice": 0.668
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0042_map.png",
+          "pred": "steps/hgb_raw/0042_pred.png",
+          "tile_dice": 0.6255,
+          "running_mean_dice": 0.5945
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0042_map.png",
+          "pred": "steps/hgb_spatial/0042_pred.png",
+          "tile_dice": 0.6255,
+          "running_mean_dice": 0.5945
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0042_map.png",
+          "pred": "steps/unet_3band/0042_pred.png",
+          "tile_dice": 0.4864,
+          "running_mean_dice": 0.6396
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0042_map.png",
+          "pred": "steps/unet_2band/0042_pred.png",
+          "tile_dice": 0.6883,
+          "running_mean_dice": 0.6469
+        }
+      }
+    },
+    {
+      "i": 43,
+      "tile_id": "polygon3_r004_c002",
+      "outline_px": [
+        [
+          128.0,
+          256.0
+        ],
+        [
+          256.0,
+          256.0
+        ],
+        [
+          256.0,
+          384.0
+        ],
+        [
+          128.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0043_backscatter.jpg",
+        "bathymetry": "steps/0043_bathymetry.jpg",
+        "slope": "steps/0043_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0043_map.png",
+          "pred": "steps/rf_raw/0043_pred.png",
+          "tile_dice": 0.6446,
+          "running_mean_dice": 0.6675
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0043_map.png",
+          "pred": "steps/rf_spatial/0043_pred.png",
+          "tile_dice": 0.6446,
+          "running_mean_dice": 0.6675
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0043_map.png",
+          "pred": "steps/hgb_raw/0043_pred.png",
+          "tile_dice": 0.5214,
+          "running_mean_dice": 0.5928
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0043_map.png",
+          "pred": "steps/hgb_spatial/0043_pred.png",
+          "tile_dice": 0.5214,
+          "running_mean_dice": 0.5928
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0043_map.png",
+          "pred": "steps/unet_3band/0043_pred.png",
+          "tile_dice": 0.9367,
+          "running_mean_dice": 0.6465
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0043_map.png",
+          "pred": "steps/unet_2band/0043_pred.png",
+          "tile_dice": 0.9001,
+          "running_mean_dice": 0.6528
+        }
+      }
+    },
+    {
+      "i": 44,
+      "tile_id": "polygon3_r004_c003",
+      "outline_px": [
+        [
+          192.0,
+          256.0
+        ],
+        [
+          320.0,
+          256.0
+        ],
+        [
+          320.0,
+          384.0
+        ],
+        [
+          192.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0044_backscatter.jpg",
+        "bathymetry": "steps/0044_bathymetry.jpg",
+        "slope": "steps/0044_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0044_map.png",
+          "pred": "steps/rf_raw/0044_pred.png",
+          "tile_dice": 0.9984,
+          "running_mean_dice": 0.675
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0044_map.png",
+          "pred": "steps/rf_spatial/0044_pred.png",
+          "tile_dice": 0.9984,
+          "running_mean_dice": 0.675
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0044_map.png",
+          "pred": "steps/hgb_raw/0044_pred.png",
+          "tile_dice": 0.7549,
+          "running_mean_dice": 0.5965
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0044_map.png",
+          "pred": "steps/hgb_spatial/0044_pred.png",
+          "tile_dice": 0.7549,
+          "running_mean_dice": 0.5965
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0044_map.png",
+          "pred": "steps/unet_3band/0044_pred.png",
+          "tile_dice": 0.625,
+          "running_mean_dice": 0.646
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0044_map.png",
+          "pred": "steps/unet_2band/0044_pred.png",
+          "tile_dice": 0.8342,
+          "running_mean_dice": 0.6569
+        }
+      }
+    },
+    {
+      "i": 45,
+      "tile_id": "polygon3_r004_c004",
+      "outline_px": [
+        [
+          256.0,
+          256.0
+        ],
+        [
+          384.0,
+          256.0
+        ],
+        [
+          384.0,
+          384.0
+        ],
+        [
+          256.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0045_backscatter.jpg",
+        "bathymetry": "steps/0045_bathymetry.jpg",
+        "slope": "steps/0045_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0045_map.png",
+          "pred": "steps/rf_raw/0045_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.6822
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0045_map.png",
+          "pred": "steps/rf_spatial/0045_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.6822
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0045_map.png",
+          "pred": "steps/hgb_raw/0045_pred.png",
+          "tile_dice": 0.7991,
+          "running_mean_dice": 0.601
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0045_map.png",
+          "pred": "steps/hgb_spatial/0045_pred.png",
+          "tile_dice": 0.7991,
+          "running_mean_dice": 0.601
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0045_map.png",
+          "pred": "steps/unet_3band/0045_pred.png",
+          "tile_dice": 0.6826,
+          "running_mean_dice": 0.6469
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0045_map.png",
+          "pred": "steps/unet_2band/0045_pred.png",
+          "tile_dice": 0.9124,
+          "running_mean_dice": 0.6626
+        }
+      }
+    },
+    {
+      "i": 46,
+      "tile_id": "polygon3_r004_c005",
+      "outline_px": [
+        [
+          320.0,
+          256.0
+        ],
+        [
+          448.0,
+          256.0
+        ],
+        [
+          448.0,
+          384.0
+        ],
+        [
+          320.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0046_backscatter.jpg",
+        "bathymetry": "steps/0046_bathymetry.jpg",
+        "slope": "steps/0046_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0046_map.png",
+          "pred": "steps/rf_raw/0046_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.6891
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0046_map.png",
+          "pred": "steps/rf_spatial/0046_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.6891
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0046_map.png",
+          "pred": "steps/hgb_raw/0046_pred.png",
+          "tile_dice": 0.6097,
+          "running_mean_dice": 0.6012
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0046_map.png",
+          "pred": "steps/hgb_spatial/0046_pred.png",
+          "tile_dice": 0.6097,
+          "running_mean_dice": 0.6012
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0046_map.png",
+          "pred": "steps/unet_3band/0046_pred.png",
+          "tile_dice": 0.5541,
+          "running_mean_dice": 0.6448
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0046_map.png",
+          "pred": "steps/unet_2band/0046_pred.png",
+          "tile_dice": 0.6198,
+          "running_mean_dice": 0.6616
+        }
+      }
+    },
+    {
+      "i": 47,
+      "tile_id": "polygon3_r004_c006",
+      "outline_px": [
+        [
+          384.0,
+          256.0
+        ],
+        [
+          512.0,
+          256.0
+        ],
+        [
+          512.0,
+          384.0
+        ],
+        [
+          384.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0047_backscatter.jpg",
+        "bathymetry": "steps/0047_bathymetry.jpg",
+        "slope": "steps/0047_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0047_map.png",
+          "pred": "steps/rf_raw/0047_pred.png",
+          "tile_dice": 0.999,
+          "running_mean_dice": 0.6957
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0047_map.png",
+          "pred": "steps/rf_spatial/0047_pred.png",
+          "tile_dice": 0.999,
+          "running_mean_dice": 0.6957
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0047_map.png",
+          "pred": "steps/hgb_raw/0047_pred.png",
+          "tile_dice": 0.7053,
+          "running_mean_dice": 0.6034
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0047_map.png",
+          "pred": "steps/hgb_spatial/0047_pred.png",
+          "tile_dice": 0.7053,
+          "running_mean_dice": 0.6034
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0047_map.png",
+          "pred": "steps/unet_3band/0047_pred.png",
+          "tile_dice": 0.6258,
+          "running_mean_dice": 0.6444
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0047_map.png",
+          "pred": "steps/unet_2band/0047_pred.png",
+          "tile_dice": 0.615,
+          "running_mean_dice": 0.6606
+        }
+      }
+    },
+    {
+      "i": 48,
+      "tile_id": "polygon3_r004_c007",
+      "outline_px": [
+        [
+          448.0,
+          256.0
+        ],
+        [
+          576.0,
+          256.0
+        ],
+        [
+          576.0,
+          384.0
+        ],
+        [
+          448.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0048_backscatter.jpg",
+        "bathymetry": "steps/0048_bathymetry.jpg",
+        "slope": "steps/0048_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0048_map.png",
+          "pred": "steps/rf_raw/0048_pred.png",
+          "tile_dice": 0.8772,
+          "running_mean_dice": 0.6995
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0048_map.png",
+          "pred": "steps/rf_spatial/0048_pred.png",
+          "tile_dice": 0.8772,
+          "running_mean_dice": 0.6995
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0048_map.png",
+          "pred": "steps/hgb_raw/0048_pred.png",
+          "tile_dice": 0.6325,
+          "running_mean_dice": 0.604
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0048_map.png",
+          "pred": "steps/hgb_spatial/0048_pred.png",
+          "tile_dice": 0.6325,
+          "running_mean_dice": 0.604
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0048_map.png",
+          "pred": "steps/unet_3band/0048_pred.png",
+          "tile_dice": 0.6454,
+          "running_mean_dice": 0.6445
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0048_map.png",
+          "pred": "steps/unet_2band/0048_pred.png",
+          "tile_dice": 0.7299,
+          "running_mean_dice": 0.6621
+        }
+      }
+    },
+    {
+      "i": 49,
+      "tile_id": "polygon3_r004_c008",
+      "outline_px": [
+        [
+          512.0,
+          256.0
+        ],
+        [
+          640.0,
+          256.0
+        ],
+        [
+          640.0,
+          384.0
+        ],
+        [
+          512.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0049_backscatter.jpg",
+        "bathymetry": "steps/0049_bathymetry.jpg",
+        "slope": "steps/0049_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0049_map.png",
+          "pred": "steps/rf_raw/0049_pred.png",
+          "tile_dice": 0.6041,
+          "running_mean_dice": 0.6975
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0049_map.png",
+          "pred": "steps/rf_spatial/0049_pred.png",
+          "tile_dice": 0.6041,
+          "running_mean_dice": 0.6975
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0049_map.png",
+          "pred": "steps/hgb_raw/0049_pred.png",
+          "tile_dice": 0.6283,
+          "running_mean_dice": 0.6045
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0049_map.png",
+          "pred": "steps/hgb_spatial/0049_pred.png",
+          "tile_dice": 0.6283,
+          "running_mean_dice": 0.6045
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0049_map.png",
+          "pred": "steps/unet_3band/0049_pred.png",
+          "tile_dice": 0.652,
+          "running_mean_dice": 0.6446
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0049_map.png",
+          "pred": "steps/unet_2band/0049_pred.png",
+          "tile_dice": 0.611,
+          "running_mean_dice": 0.661
+        }
+      }
+    },
+    {
+      "i": 50,
+      "tile_id": "polygon3_r004_c009",
+      "outline_px": [
+        [
+          576.0,
+          256.0
+        ],
+        [
+          704.0,
+          256.0
+        ],
+        [
+          704.0,
+          384.0
+        ],
+        [
+          576.0,
+          384.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0050_backscatter.jpg",
+        "bathymetry": "steps/0050_bathymetry.jpg",
+        "slope": "steps/0050_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0050_map.png",
+          "pred": "steps/rf_raw/0050_pred.png",
+          "tile_dice": 0.5137,
+          "running_mean_dice": 0.6939
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0050_map.png",
+          "pred": "steps/rf_spatial/0050_pred.png",
+          "tile_dice": 0.5137,
+          "running_mean_dice": 0.6939
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0050_map.png",
+          "pred": "steps/hgb_raw/0050_pred.png",
+          "tile_dice": 0.5373,
+          "running_mean_dice": 0.6032
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0050_map.png",
+          "pred": "steps/hgb_spatial/0050_pred.png",
+          "tile_dice": 0.5373,
+          "running_mean_dice": 0.6032
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0050_map.png",
+          "pred": "steps/unet_3band/0050_pred.png",
+          "tile_dice": 0.6303,
+          "running_mean_dice": 0.6443
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0050_map.png",
+          "pred": "steps/unet_2band/0050_pred.png",
+          "tile_dice": 0.6999,
+          "running_mean_dice": 0.6618
+        }
+      }
+    },
+    {
+      "i": 51,
+      "tile_id": "polygon3_r005_c000",
+      "outline_px": [
+        [
+          0.0,
+          320.0
+        ],
+        [
+          128.0,
+          320.0
+        ],
+        [
+          128.0,
+          448.0
+        ],
+        [
+          0.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0051_backscatter.jpg",
+        "bathymetry": "steps/0051_bathymetry.jpg",
+        "slope": "steps/0051_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0051_map.png",
+          "pred": "steps/rf_raw/0051_pred.png",
+          "tile_dice": 0.5906,
+          "running_mean_dice": 0.6918
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0051_map.png",
+          "pred": "steps/rf_spatial/0051_pred.png",
+          "tile_dice": 0.5906,
+          "running_mean_dice": 0.6918
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0051_map.png",
+          "pred": "steps/hgb_raw/0051_pred.png",
+          "tile_dice": 0.5843,
+          "running_mean_dice": 0.6028
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0051_map.png",
+          "pred": "steps/hgb_spatial/0051_pred.png",
+          "tile_dice": 0.5843,
+          "running_mean_dice": 0.6028
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0051_map.png",
+          "pred": "steps/unet_3band/0051_pred.png",
+          "tile_dice": 0.5569,
+          "running_mean_dice": 0.6426
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0051_map.png",
+          "pred": "steps/unet_2band/0051_pred.png",
+          "tile_dice": 0.7385,
+          "running_mean_dice": 0.6633
+        }
+      }
+    },
+    {
+      "i": 52,
+      "tile_id": "polygon3_r005_c001",
+      "outline_px": [
+        [
+          64.0,
+          320.0
+        ],
+        [
+          192.0,
+          320.0
+        ],
+        [
+          192.0,
+          448.0
+        ],
+        [
+          64.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0052_backscatter.jpg",
+        "bathymetry": "steps/0052_bathymetry.jpg",
+        "slope": "steps/0052_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0052_map.png",
+          "pred": "steps/rf_raw/0052_pred.png",
+          "tile_dice": 0.5771,
+          "running_mean_dice": 0.6896
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0052_map.png",
+          "pred": "steps/rf_spatial/0052_pred.png",
+          "tile_dice": 0.5771,
+          "running_mean_dice": 0.6896
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0052_map.png",
+          "pred": "steps/hgb_raw/0052_pred.png",
+          "tile_dice": 0.5741,
+          "running_mean_dice": 0.6022
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0052_map.png",
+          "pred": "steps/hgb_spatial/0052_pred.png",
+          "tile_dice": 0.5741,
+          "running_mean_dice": 0.6022
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0052_map.png",
+          "pred": "steps/unet_3band/0052_pred.png",
+          "tile_dice": 0.4959,
+          "running_mean_dice": 0.6398
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0052_map.png",
+          "pred": "steps/unet_2band/0052_pred.png",
+          "tile_dice": 0.819,
+          "running_mean_dice": 0.6663
+        }
+      }
+    },
+    {
+      "i": 53,
+      "tile_id": "polygon3_r005_c002",
+      "outline_px": [
+        [
+          128.0,
+          320.0
+        ],
+        [
+          256.0,
+          320.0
+        ],
+        [
+          256.0,
+          448.0
+        ],
+        [
+          128.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0053_backscatter.jpg",
+        "bathymetry": "steps/0053_bathymetry.jpg",
+        "slope": "steps/0053_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0053_map.png",
+          "pred": "steps/rf_raw/0053_pred.png",
+          "tile_dice": 0.9357,
+          "running_mean_dice": 0.6943
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0053_map.png",
+          "pred": "steps/rf_spatial/0053_pred.png",
+          "tile_dice": 0.9357,
+          "running_mean_dice": 0.6943
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0053_map.png",
+          "pred": "steps/hgb_raw/0053_pred.png",
+          "tile_dice": 0.5924,
+          "running_mean_dice": 0.6021
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0053_map.png",
+          "pred": "steps/hgb_spatial/0053_pred.png",
+          "tile_dice": 0.5924,
+          "running_mean_dice": 0.6021
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0053_map.png",
+          "pred": "steps/unet_3band/0053_pred.png",
+          "tile_dice": 0.6421,
+          "running_mean_dice": 0.6398
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0053_map.png",
+          "pred": "steps/unet_2band/0053_pred.png",
+          "tile_dice": 0.6326,
+          "running_mean_dice": 0.6657
+        }
+      }
+    },
+    {
+      "i": 54,
+      "tile_id": "polygon3_r005_c003",
+      "outline_px": [
+        [
+          192.0,
+          320.0
+        ],
+        [
+          320.0,
+          320.0
+        ],
+        [
+          320.0,
+          448.0
+        ],
+        [
+          192.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0054_backscatter.jpg",
+        "bathymetry": "steps/0054_bathymetry.jpg",
+        "slope": "steps/0054_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0054_map.png",
+          "pred": "steps/rf_raw/0054_pred.png",
+          "tile_dice": 0.9994,
+          "running_mean_dice": 0.6999
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0054_map.png",
+          "pred": "steps/rf_spatial/0054_pred.png",
+          "tile_dice": 0.9994,
+          "running_mean_dice": 0.6999
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0054_map.png",
+          "pred": "steps/hgb_raw/0054_pred.png",
+          "tile_dice": 0.6708,
+          "running_mean_dice": 0.6033
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0054_map.png",
+          "pred": "steps/hgb_spatial/0054_pred.png",
+          "tile_dice": 0.6708,
+          "running_mean_dice": 0.6033
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0054_map.png",
+          "pred": "steps/unet_3band/0054_pred.png",
+          "tile_dice": 0.6229,
+          "running_mean_dice": 0.6395
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0054_map.png",
+          "pred": "steps/unet_2band/0054_pred.png",
+          "tile_dice": 0.8691,
+          "running_mean_dice": 0.6694
+        }
+      }
+    },
+    {
+      "i": 55,
+      "tile_id": "polygon3_r005_c004",
+      "outline_px": [
+        [
+          256.0,
+          320.0
+        ],
+        [
+          384.0,
+          320.0
+        ],
+        [
+          384.0,
+          448.0
+        ],
+        [
+          256.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0055_backscatter.jpg",
+        "bathymetry": "steps/0055_bathymetry.jpg",
+        "slope": "steps/0055_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0055_map.png",
+          "pred": "steps/rf_raw/0055_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.7054
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0055_map.png",
+          "pred": "steps/rf_spatial/0055_pred.png",
+          "tile_dice": 0.9999,
+          "running_mean_dice": 0.7054
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0055_map.png",
+          "pred": "steps/hgb_raw/0055_pred.png",
+          "tile_dice": 0.7229,
+          "running_mean_dice": 0.6055
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0055_map.png",
+          "pred": "steps/hgb_spatial/0055_pred.png",
+          "tile_dice": 0.7229,
+          "running_mean_dice": 0.6055
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0055_map.png",
+          "pred": "steps/unet_3band/0055_pred.png",
+          "tile_dice": 0.6384,
+          "running_mean_dice": 0.6395
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0055_map.png",
+          "pred": "steps/unet_2band/0055_pred.png",
+          "tile_dice": 0.8279,
+          "running_mean_dice": 0.6723
+        }
+      }
+    },
+    {
+      "i": 56,
+      "tile_id": "polygon3_r005_c005",
+      "outline_px": [
+        [
+          320.0,
+          320.0
+        ],
+        [
+          448.0,
+          320.0
+        ],
+        [
+          448.0,
+          448.0
+        ],
+        [
+          320.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0056_backscatter.jpg",
+        "bathymetry": "steps/0056_bathymetry.jpg",
+        "slope": "steps/0056_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0056_map.png",
+          "pred": "steps/rf_raw/0056_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.7106
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0056_map.png",
+          "pred": "steps/rf_spatial/0056_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.7106
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0056_map.png",
+          "pred": "steps/hgb_raw/0056_pred.png",
+          "tile_dice": 0.5295,
+          "running_mean_dice": 0.6042
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0056_map.png",
+          "pred": "steps/hgb_spatial/0056_pred.png",
+          "tile_dice": 0.5295,
+          "running_mean_dice": 0.6042
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0056_map.png",
+          "pred": "steps/unet_3band/0056_pred.png",
+          "tile_dice": 0.4958,
+          "running_mean_dice": 0.6369
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0056_map.png",
+          "pred": "steps/unet_2band/0056_pred.png",
+          "tile_dice": 0.4835,
+          "running_mean_dice": 0.6689
+        }
+      }
+    },
+    {
+      "i": 57,
+      "tile_id": "polygon3_r005_c006",
+      "outline_px": [
+        [
+          384.0,
+          320.0
+        ],
+        [
+          512.0,
+          320.0
+        ],
+        [
+          512.0,
+          448.0
+        ],
+        [
+          384.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0057_backscatter.jpg",
+        "bathymetry": "steps/0057_bathymetry.jpg",
+        "slope": "steps/0057_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0057_map.png",
+          "pred": "steps/rf_raw/0057_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.7157
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0057_map.png",
+          "pred": "steps/rf_spatial/0057_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.7157
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0057_map.png",
+          "pred": "steps/hgb_raw/0057_pred.png",
+          "tile_dice": 0.3313,
+          "running_mean_dice": 0.5994
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0057_map.png",
+          "pred": "steps/hgb_spatial/0057_pred.png",
+          "tile_dice": 0.3313,
+          "running_mean_dice": 0.5994
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0057_map.png",
+          "pred": "steps/unet_3band/0057_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6433
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0057_map.png",
+          "pred": "steps/unet_2band/0057_pred.png",
+          "tile_dice": 1.0,
+          "running_mean_dice": 0.6748
+        }
+      }
+    },
+    {
+      "i": 58,
+      "tile_id": "polygon3_r005_c007",
+      "outline_px": [
+        [
+          448.0,
+          320.0
+        ],
+        [
+          576.0,
+          320.0
+        ],
+        [
+          576.0,
+          448.0
+        ],
+        [
+          448.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0058_backscatter.jpg",
+        "bathymetry": "steps/0058_bathymetry.jpg",
+        "slope": "steps/0058_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0058_map.png",
+          "pred": "steps/rf_raw/0058_pred.png",
+          "tile_dice": 0.6177,
+          "running_mean_dice": 0.714
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0058_map.png",
+          "pred": "steps/rf_spatial/0058_pred.png",
+          "tile_dice": 0.6177,
+          "running_mean_dice": 0.714
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0058_map.png",
+          "pred": "steps/hgb_raw/0058_pred.png",
+          "tile_dice": 0.6298,
+          "running_mean_dice": 0.5999
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0058_map.png",
+          "pred": "steps/hgb_spatial/0058_pred.png",
+          "tile_dice": 0.6298,
+          "running_mean_dice": 0.5999
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0058_map.png",
+          "pred": "steps/unet_3band/0058_pred.png",
+          "tile_dice": 0.6546,
+          "running_mean_dice": 0.6435
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0058_map.png",
+          "pred": "steps/unet_2band/0058_pred.png",
+          "tile_dice": 0.6477,
+          "running_mean_dice": 0.6743
+        }
+      }
+    },
+    {
+      "i": 59,
+      "tile_id": "polygon3_r005_c008",
+      "outline_px": [
+        [
+          512.0,
+          320.0
+        ],
+        [
+          640.0,
+          320.0
+        ],
+        [
+          640.0,
+          448.0
+        ],
+        [
+          512.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0059_backscatter.jpg",
+        "bathymetry": "steps/0059_bathymetry.jpg",
+        "slope": "steps/0059_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0059_map.png",
+          "pred": "steps/rf_raw/0059_pred.png",
+          "tile_dice": 0.5657,
+          "running_mean_dice": 0.7115
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0059_map.png",
+          "pred": "steps/rf_spatial/0059_pred.png",
+          "tile_dice": 0.5657,
+          "running_mean_dice": 0.7115
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0059_map.png",
+          "pred": "steps/hgb_raw/0059_pred.png",
+          "tile_dice": 0.595,
+          "running_mean_dice": 0.5998
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0059_map.png",
+          "pred": "steps/hgb_spatial/0059_pred.png",
+          "tile_dice": 0.595,
+          "running_mean_dice": 0.5998
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0059_map.png",
+          "pred": "steps/unet_3band/0059_pred.png",
+          "tile_dice": 0.611,
+          "running_mean_dice": 0.6429
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0059_map.png",
+          "pred": "steps/unet_2band/0059_pred.png",
+          "tile_dice": 0.5981,
+          "running_mean_dice": 0.673
+        }
+      }
+    },
+    {
+      "i": 60,
+      "tile_id": "polygon3_r005_c009",
+      "outline_px": [
+        [
+          576.0,
+          320.0
+        ],
+        [
+          704.0,
+          320.0
+        ],
+        [
+          704.0,
+          448.0
+        ],
+        [
+          576.0,
+          448.0
+        ]
+      ],
+      "bands": {
+        "backscatter": "steps/0060_backscatter.jpg",
+        "bathymetry": "steps/0060_bathymetry.jpg",
+        "slope": "steps/0060_slope.jpg"
+      },
+      "per_model": {
+        "rf_raw": {
+          "class_map": "steps/rf_raw/0060_map.png",
+          "pred": "steps/rf_raw/0060_pred.png",
+          "tile_dice": 0.4832,
+          "running_mean_dice": 0.7077
+        },
+        "rf_spatial": {
+          "class_map": "steps/rf_spatial/0060_map.png",
+          "pred": "steps/rf_spatial/0060_pred.png",
+          "tile_dice": 0.4832,
+          "running_mean_dice": 0.7077
+        },
+        "hgb_raw": {
+          "class_map": "steps/hgb_raw/0060_map.png",
+          "pred": "steps/hgb_raw/0060_pred.png",
+          "tile_dice": 0.5021,
+          "running_mean_dice": 0.5982
+        },
+        "hgb_spatial": {
+          "class_map": "steps/hgb_spatial/0060_map.png",
+          "pred": "steps/hgb_spatial/0060_pred.png",
+          "tile_dice": 0.5021,
+          "running_mean_dice": 0.5982
+        },
+        "unet_3band": {
+          "class_map": "steps/unet_3band/0060_map.png",
+          "pred": "steps/unet_3band/0060_pred.png",
+          "tile_dice": 0.5001,
+          "running_mean_dice": 0.6406
+        },
+        "unet_2band": {
+          "class_map": "steps/unet_2band/0060_map.png",
+          "pred": "steps/unet_2band/0060_pred.png",
+          "tile_dice": 0.4965,
+          "running_mean_dice": 0.6701
+        }
+      }
+    }
+  ]
+}

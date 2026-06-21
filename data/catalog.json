@@ -1,0 +1,132 @@
+{
+  "class_names": {
+    "1": "rock",
+    "2": "shallow_rock",
+    "3": "sand"
+  },
+  "class_palette": {
+    "0": [
+      0,
+      0,
+      0
+    ],
+    "1": [
+      202,
+      0,
+      32
+    ],
+    "2": [
+      244,
+      165,
+      130
+    ],
+    "3": [
+      5,
+      113,
+      176
+    ]
+  },
+  "model_labels": {
+    "unet_3band": "U-Net (3-band)",
+    "unet_2band": "U-Net (2-band)",
+    "rf_raw": "Random Forest",
+    "rf_spatial": "Random Forest (guided)",
+    "hgb_raw": "HistGradBoost",
+    "hgb_spatial": "HistGradBoost (guided)"
+  },
+  "polygons": [
+    {
+      "polygon": "polygon1",
+      "n_tiles": 154,
+      "manifest": "sessions/polygon1/manifest.json",
+      "models": [
+        {
+          "id": "rf_raw",
+          "mean_dice": 0.8998
+        },
+        {
+          "id": "rf_spatial",
+          "mean_dice": 0.907
+        },
+        {
+          "id": "hgb_raw",
+          "mean_dice": 0.8385
+        },
+        {
+          "id": "hgb_spatial",
+          "mean_dice": 0.8517
+        },
+        {
+          "id": "unet_3band",
+          "mean_dice": 0.8735
+        },
+        {
+          "id": "unet_2band",
+          "mean_dice": 0.8349
+        }
+      ]
+    },
+    {
+      "polygon": "polygon3",
+      "n_tiles": 60,
+      "manifest": "sessions/polygon3/manifest.json",
+      "models": [
+        {
+          "id": "rf_raw",
+          "mean_dice": 0.8096
+        },
+        {
+          "id": "rf_spatial",
+          "mean_dice": 0.824
+        },
+        {
+          "id": "hgb_raw",
+          "mean_dice": 0.7424
+        },
+        {
+          "id": "hgb_spatial",
+          "mean_dice": 0.7739
+        },
+        {
+          "id": "unet_3band",
+          "mean_dice": 0.7476
+        },
+        {
+          "id": "unet_2band",
+          "mean_dice": 0.7848
+        }
+      ]
+    },
+    {
+      "polygon": "polygon7",
+      "n_tiles": 36,
+      "manifest": "sessions/polygon7/manifest.json",
+      "models": [
+        {
+          "id": "rf_raw",
+          "mean_dice": 0.2747
+        },
+        {
+          "id": "rf_spatial",
+          "mean_dice": 0.2605
+        },
+        {
+          "id": "hgb_raw",
+          "mean_dice": 0.2606
+        },
+        {
+          "id": "hgb_spatial",
+          "mean_dice": 0.2519
+        },
+        {
+          "id": "unet_3band",
+          "mean_dice": 0.262
+        },
+        {
+          "id": "unet_2band",
+          "mean_dice": 0.3532
+        }
+      ]
+    }
+  ]
+}
