@@ -58,8 +58,14 @@ Any static host works. For local dev:
 
 ```bash
 cd webapp && python -m http.server 8000
-# frontend served from web/, data fetched from /data (DATA_BASE_URL)
+# then open http://localhost:8000/web/
 ```
+
+The frontend (`web/index.html`) is a single self-contained page (vanilla JS + canvas, no build
+step) implemented from the Claude Design comp **"Seabed Classifier"**. Serve from `webapp/` so the
+app's default `DATA_BASE_URL` (`/data`) resolves to `webapp/data/`. To point it elsewhere, append
+`?data=<base-url>` (e.g. `http://localhost:8000/web/?data=/data`). It picks up whatever polygons
+`catalog.json` lists, so re-running the recorder + reloading the page is all it takes to add surveys.
 
 The frontend fetches `${DATA_BASE_URL}/catalog.json` then a polygon's
 `sessions/<polygon>/manifest.json` and the image assets it references (paths are relative to
