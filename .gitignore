@@ -20,6 +20,11 @@ env
 **/*.env
 
 #####################
+# WEB DEMO (generated recordings)
+#####################
+webapp/data/
+
+#####################
 # REMOTION DEMO (generated)
 #####################
 demo/node_modules/

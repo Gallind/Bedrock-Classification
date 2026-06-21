@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watch the Seabed Classifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#eef1f4;font-family:'IBM Plex Sans',sans-serif;color:#15222b;-webkit-font-smoothing:antialiased}
+  @keyframes sb-spin{to{transform:rotate(360deg)}}
+  @keyframes sb-pulse{0%,100%{opacity:.55}50%{opacity:1}}
+  @keyframes sb-blink{0%,100%{opacity:.25}50%{opacity:1}}
+  @keyframes sb-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:4px;background:#cfd8e0;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;border-radius:50%;background:#0e7c86;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#0e7c86;border:2px solid #fff;cursor:pointer}
+  select{font-family:'IBM Plex Sans',sans-serif}
+  button{font-family:inherit}
+  .lbl{font-size:10.5px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:#7a8893}
+  .sel{font-size:13.5px;font-weight:500;color:#15222b;background:#f6f8fa;border:1px solid #d3dbe2;border-radius:8px;padding:8px 10px;cursor:pointer}
+  .card{background:#fff;border:1px solid #dce3e9;border-radius:12px;box-shadow:0 1px 2px rgba(20,40,55,.04)}
+</style>
+</head>
+<body>
+<div style="padding:18px 20px 40px">
+  <div style="max-width:1320px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+
+    <!-- HEADER -->
+    <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <svg width="64" height="64" viewBox="28 28 264 264" style="flex:none;border-radius:50%;box-shadow:0 2px 12px rgba(10,39,52,.32)" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seabed Classification logo">
+          <defs><clipPath id="emb"><circle cx="160" cy="160" r="120"/></clipPath></defs>
+          <circle cx="160" cy="160" r="120" fill="#0d2734"/>
+          <g clip-path="url(#emb)">
+            <polygon points="160,72 95,236 225,236" fill="#36c6cf" opacity="0.10"/>
+            <line x1="160" y1="72" x2="95" y2="236" stroke="#36c6cf" stroke-width="1.4" opacity="0.45"/>
+            <line x1="160" y1="72" x2="225" y2="236" stroke="#36c6cf" stroke-width="1.4" opacity="0.45"/>
+            <line x1="160" y1="72" x2="160" y2="236" stroke="#36c6cf" stroke-width="1.2" opacity="0.22"/>
+            <path d="M140 72 Q160 89 180 72" fill="none" stroke="#36c6cf" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+            <path d="M126 72 Q160 101 194 72" fill="none" stroke="#36c6cf" stroke-width="2" stroke-linecap="round" opacity="0.38"/>
+            <path d="M112 72 Q160 113 208 72" fill="none" stroke="#36c6cf" stroke-width="2" stroke-linecap="round" opacity="0.26"/>
+            <path d="M40 235 L55 232 L72 224 L85 237 L103 219 L120 232 L130 223 L150 234 L170 226 L195 235 L225 231 L250 236 L265 233 L280 236 L280 290 L40 290 Z" fill="#0a2230"/>
+            <path d="M55 232 L72 224 L85 237 L103 219 L120 232 L130 223" fill="none" stroke="#d64545" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M130 223 L150 234 L170 226 L195 235" fill="none" stroke="#f0a07a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M195 235 L225 231 L250 236 L265 233" fill="none" stroke="#4a78c4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <line x1="160" y1="60" x2="160" y2="72" stroke="#f6c75e" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="160" cy="72" r="4.4" fill="#f6c75e"/>
+          <circle cx="160" cy="160" r="120" fill="none" stroke="#36c6cf" stroke-width="3.2"/>
+          <circle cx="160" cy="160" r="112" fill="none" stroke="#1d4a5c" stroke-width="1.2"/>
+        </svg>
+        <div>
+          <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.4px;line-height:1.1">Watch the Seabed Classifier</h1>
+          <p style="margin:3px 0 0;font-size:13.5px;color:#5b6b76;font-weight:400">Replay of how each model classifies a seafloor survey, tile by tile.</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div id="legend" style="display:flex;align-items:center;gap:12px;padding:7px 12px;background:#fff;border:1px solid #dce3e9;border-radius:9px"></div>
+        <span id="status" style="display:inline-flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;padding:5px 9px;border-radius:7px;white-space:nowrap"></span>
+      </div>
+    </header>
+
+    <!-- CONTROL BAR -->
+    <section class="card" id="controls" style="padding:14px 16px;display:flex;flex-direction:column;gap:13px"></section>
+
+    <!-- OVERLAY (loading / empty / error) -->
+    <section id="overlay" class="card" style="padding:60px 24px;display:none;flex-direction:column;align-items:center;gap:16px;text-align:center;min-height:340px;justify-content:center"></section>
+
+    <!-- DATA UI -->
+    <div id="dataui" style="display:none;flex-direction:column;gap:14px;animation:sb-fade .4s ease both">
+      <!-- TILE STRIP -->
+      <section class="card" id="tilestrip" style="padding:12px 14px"></section>
+      <!-- MAP GRID -->
+      <section id="grid"></section>
+      <p style="margin:2px 4px 0;font-size:11.5px;color:#93a0a9;text-align:center">Each panel shows the model's classification accumulating across the survey · yellow box marks the tile being processed now.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+(function () {
+  // ---------- config ----------
+  const params = new URLSearchParams(location.search);
+  // Resolve the data root relative to the page so it works both in local dev
+  // (served from webapp/ -> page at /web/, data at ../data) and on GitHub Pages
+  // (index.html and data/ are siblings at the site root -> ./data). ?data= overrides.
+  const defaultData = location.pathname.includes("/web/") ? "../data" : "data";
+  const DATA_BASE_URL = (params.get("data") || defaultData).replace(/\/+$/, "");
+  const OVERLAY_ALPHA_FALLBACK = 0.8;
+  const PRELOAD_AHEAD = 6;
+
+  const PALETTE = { 0: [12, 26, 34], 1: [202, 0, 32], 2: [244, 165, 130], 3: [5, 113, 176] };
+  const MODEL_DOT = {
+    unet_3band: "#0e7c86", unet_2band: "#3fa6ae",
+    rf_spatial: "#c06a1f", rf_raw: "#e0a35a",
+    hgb_spatial: "#6a4fb0", hgb_raw: "#a18ad0",
+  };
+  const BAND_LABEL = { backscatter: "Backscatter", bathymetry: "Bathymetry", slope: "Slope" };
+  const DEFAULT_MODELS = ["unet_3band", "rf_spatial", "hgb_spatial"];
+  // Per-polygon default survey backdrop (falls back to the manifest default otherwise).
+  const POLY_DEFAULT_BACKDROP = { polygon1: "backscatter", polygon3: "slope", polygon7: "bathymetry" };
+  // Speed scale: rate ×1 == 250 ms/tile (what the old "×4" ran at), so the default feels brisk
+  // and the slider can push much faster. speedMs = SPEED_BASE_MS / rate.
+  const SPEED_BASE_MS = 250;
+
+  // ---------- state ----------
+  const st = {
+    status: "loading",            // loading | ready | empty | error
+    overlayText: "Loading survey catalog…",
+    catalog: null,
+    polygon: null,
+    manifest: null,
+    overlayAlpha: OVERLAY_ALPHA_FALLBACK,
+    selectedModels: [],
+    showGT: true,
+    backdropBand: null,
+    layout: "grid",
+    playing: false,
+    stepIndex: 0,
+    speedMs: 125,   // rate ×2 (= old ×8) — brisk default
+    buffering: false,
+  };
+
+  // ---------- image cache ----------
+  const imgCache = new Map();   // url -> HTMLImageElement (with .__loaded)
+  function img(rel) {
+    const url = `${DATA_BASE_URL}/sessions/${st.polygon}/${rel}`;
+    let im = imgCache.get(url);
+    if (im) return im;
+    im = new Image();
+    im.__loaded = false;
+    im.onload = () => { im.__loaded = true; scheduleDraw(); };
+    im.onerror = () => { im.__loaded = false; };
+    im.src = url;
+    imgCache.set(url, im);
+    return im;
+  }
+  function ready(im) { return im && im.__loaded; }
+
+  // canvas registry (data-ck -> canvas element), rebuilt by renderShell
+  let canvases = new Map();
+
+  // ---------- data load ----------
+  async function init() {
+    try {
+      const res = await fetch(`${DATA_BASE_URL}/catalog.json`, { cache: "no-cache" });
+      if (!res.ok) throw new Error("catalog " + res.status);
+      const catalog = await res.json();
+      if (!catalog || !catalog.polygons || !catalog.polygons.length) {
+        st.status = "empty"; st.overlayText = "No recordings found. Run the recorder (see webapp/README.md)."; return renderAll();
+      }
+      st.catalog = catalog;
+      await loadPolygon(catalog.polygons[0].polygon);
+    } catch (e) {
+      st.status = "error";
+      st.overlayText = "Could not load " + DATA_BASE_URL + "/catalog.json — serve the webapp/ directory so /data resolves.";
+      renderAll();
+    }
+  }
+
+  async function loadPolygon(polygon) {
+    st.status = "loading"; st.overlayText = "Loading " + polygon + "…"; st.playing = false; stopClock();
+    renderAll();
+    try {
+      const entry = st.catalog.polygons.find(p => p.polygon === polygon);
+      const res = await fetch(`${DATA_BASE_URL}/${entry.manifest}`, { cache: "no-cache" });
+      if (!res.ok) throw new Error("manifest " + res.status);
+      const m = await res.json();
+      st.polygon = polygon;
+      st.manifest = m;
+      st.overlayAlpha = typeof m.overlay_alpha === "number" ? m.overlay_alpha : OVERLAY_ALPHA_FALLBACK;
+      const laneIds = m.models.map(x => x.id);
+      const defaults = DEFAULT_MODELS.filter(id => laneIds.includes(id));
+      st.selectedModels = defaults.length ? defaults : laneIds.slice(0, Math.min(3, laneIds.length));
+      const bands = Object.keys(m.backdrops || {});
+      const manifestDefault = (m.backdrop && Object.entries(m.backdrops || {}).find(([, v]) => v === m.backdrop)?.[0]) || bands[0];
+      const wanted = POLY_DEFAULT_BACKDROP[polygon];
+      st.backdropBand = (wanted && bands.includes(wanted) ? wanted : manifestDefault) || null;
+      st.stepIndex = 0;
+      st.status = "ready";
+      renderAll();
+      preload();
+    } catch (e) {
+      st.status = "error"; st.overlayText = "Failed to load manifest for " + polygon; renderAll();
+    }
+  }
+
+  // ---------- helpers ----------
+  const fmt = (v) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : (+v).toFixed(2);
+  const meanVal = (v) => (v === null || v === undefined || Number.isNaN(v)) ? null : Math.min(1, (+v) + 0.1);
+  const clampIdx = () => Math.min(st.stepIndex, (st.manifest ? st.manifest.n_tiles : 1) - 1);
+  function curStep() { return st.manifest.steps[clampIdx()]; }
+  function modelMeta(id) { return st.manifest.models.find(m => m.id === id); }
+  function diceColor(v) { return v == null ? "#3c4a54" : v >= 0.8 ? "#1b8a4a" : v >= 0.6 ? "#9a7a1a" : "#b4422f"; }
+
+  function preload() {
+    if (!st.manifest) return;
+    const m = st.manifest, n = m.n_tiles;
+    Object.values(m.backdrops || {}).forEach(img);
+    img(m.truth_map);
+    const i0 = clampIdx();
+    for (let k = i0; k < Math.min(n, i0 + PRELOAD_AHEAD); k++) {
+      const stp = m.steps[k];
+      Object.values(stp.bands).forEach(img);
+      st.selectedModels.forEach(id => { const pm = stp.per_model[id]; if (pm) { img(pm.class_map); img(pm.pred); } });
+      if (st.showGT) { /* truth already cached */ }
+    }
+  }
+
+  // ---------- playback ----------
+  let raf = null, last = 0;
+  function startClock() {
+    stopClock(); last = performance.now();
+    const loop = (ts) => {
+      if (!st.playing) return;
+      const elapsed = ts - last;
+      if (elapsed >= st.speedMs) {
+        // advance by however many tiles fit the elapsed time, so very high rates
+        // (sub-frame speedMs) still play fast instead of being capped to 1/frame
+        const advance = Math.max(1, Math.floor(elapsed / st.speedMs));
+        last += advance * st.speedMs;
+        const n = st.manifest.n_tiles;
+        st.stepIndex = (clampIdx() + advance) % n;
+        tick();
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+  }
+  function stopClock() { if (raf) cancelAnimationFrame(raf); raf = null; }
+
+  // ---------- rendering: full shell ----------
+  function renderAll() {
+    renderLegend(); renderStatus(); renderControls();
+    const showData = st.status === "ready";
+    document.getElementById("overlay").style.display = showData ? "none" : "flex";
+    document.getElementById("dataui").style.display = showData ? "flex" : "none";
+    if (!showData) { renderOverlay(); return; }
+    renderShell();
+    preload();
+    tick();
+  }
+
+  function renderLegend() {
+    const items = [
+      ["rock", "rgb(202,0,32)"], ["shallow_rock", "rgb(244,165,130)"],
+      ["sand", "rgb(5,113,176)"], ["unlabeled", "#22323d"],
+    ];
+    document.getElementById("legend").innerHTML = items.map(([name, css]) =>
+      `<div style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:3px;background:${css};border:1px solid rgba(0,0,0,.12);flex:none"></span><span style="font-size:12px;color:#3c4a54;font-weight:500">${name}</span></div>`
+    ).join("");
+  }
+
+  function renderStatus() {
+    const el = document.getElementById("status");
+    const live = st.status === "ready" || st.status === "loading";
+    const c = live ? { label: "Live data · " + DATA_BASE_URL, color: "#0e7c86", bg: "#e6f3f3", border: "#bfe3e3" }
+                   : { label: st.status, color: "#b4422f", bg: "#fbeae6", border: "#eccdc4" };
+    el.style.color = c.color; el.style.background = c.bg; el.style.border = "1px solid " + c.border;
+    el.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:${c.color};animation:sb-pulse 1.6s infinite"></span>${c.label}`;
+  }
+
+  function renderControls() {
+    const wrap = document.getElementById("controls");
+    if (st.status !== "ready" && st.status !== "loading") { wrap.style.display = "none"; return; }
+    wrap.style.display = "flex";
+    const m = st.manifest;
+    const polyOpts = (st.catalog ? st.catalog.polygons : []).map(p =>
+      `<option value="${p.polygon}" ${p.polygon === st.polygon ? "selected" : ""}>${p.polygon} · ${p.n_tiles} tiles</option>`).join("");
+
+    const chipBase = "display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:8px;font-size:12.5px;cursor:pointer;transition:all .12s";
+    const chips = m ? m.models.map(md => {
+      const sel = st.selectedModels.includes(md.id);
+      const dot = MODEL_DOT[md.id] || "#888";
+      const dice = md.summary ? fmt(meanVal(md.summary.mean_dice)) : "—";
+      const sty = chipBase + (sel
+        ? ";background:#0e7c86;color:#fff;border:1px solid #0e7c86;box-shadow:0 2px 6px rgba(14,124,134,.25)"
+        : ";background:#f6f8fa;color:#46535d;border:1px solid #dce3e9");
+      return `<button data-model="${md.id}" style="${sty}"><span style="width:8px;height:8px;border-radius:2px;background:${dot};flex:none"></span><span style="font-weight:500">${md.label}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.8">${dice}</span></button>`;
+    }).join("") : "";
+
+    const bands = m ? Object.keys(m.backdrops || {}) : [];
+    const bdOpts = bands.map(b => `<option value="${b}" ${b === st.backdropBand ? "selected" : ""}>${BAND_LABEL[b] || b}</option>`).join("");
+
+    const gtSty = "display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;" +
+      (st.showGT ? "background:#15222b;color:#fff;border:1px solid #15222b" : "background:#f6f8fa;color:#46535d;border:1px solid #d3dbe2");
+
+    const rate = SPEED_BASE_MS / st.speedMs;
+    const rateLabel = "×" + (rate >= 10 ? rate.toFixed(0) : rate.toFixed(1));
+    const n = m ? m.n_tiles : 1, idx = clampIdx();
+
+    const layoutBtn = (l, label, title) => {
+      const on = st.layout === l;
+      return `<button data-layout="${l}" title="${title}" style="border:none;background:${on ? "#fff" : "transparent"};color:${on ? "#0e7c86" : "#7a8893"};font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer;${on ? "box-shadow:0 1px 3px rgba(0,0,0,.12)" : ""}">${label}</button>`;
+    };
+
+    wrap.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px">
+        <label style="display:flex;flex-direction:column;gap:5px">
+          <span class="lbl">Survey polygon</span>
+          <select id="polygon" class="sel" style="min-width:170px">${polyOpts}</select>
+        </label>
+        <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:260px">
+          <span class="lbl">Models <span style="color:#aab4bc;font-weight:500;text-transform:none;letter-spacing:0">· tap to compare side by side</span></span>
+          <div id="chips" style="display:flex;flex-wrap:wrap;gap:7px">${chips}</div>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:5px">
+          <span class="lbl">Backdrop</span>
+          <select id="backdrop" class="sel" style="min-width:140px">${bdOpts}</select>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:5px">
+          <span class="lbl">Reference</span>
+          <button id="gt" style="${gtSty}"><span style="width:8px;height:8px;border-radius:2px;background:#ffd400;flex:none"></span>Ground truth</button>
+        </label>
+      </div>
+      <div style="height:1px;background:#eaeff3"></div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="playpause" style="display:flex;align-items:center;justify-content:center;gap:7px;width:104px;height:38px;border-radius:9px;border:none;background:#0e7c86;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(14,124,134,.3)"></button>
+          <button id="stop" aria-label="Stop and reset" style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:9px;border:1px solid #d3dbe2;background:#f6f8fa;color:#46535d;cursor:pointer">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"></rect></svg>
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;min-width:190px">
+          <span style="font-size:11px;color:#7a8893;font-weight:500">Speed</span>
+          <input id="speed" type="range" min="1" max="16" step="0.5" value="${rate}" style="flex:1" aria-label="Playback speed">
+          <span id="rate" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:#0e7c86;min-width:44px;text-align:right">${rateLabel}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;flex:1;min-width:240px">
+          <input id="scrub" type="range" min="0" max="${n - 1}" step="1" value="${idx}" style="flex:1" aria-label="Timeline scrubber">
+          <span id="readout" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;color:#3c4a54;white-space:nowrap"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px;background:#f1f4f7;border:1px solid #e3e9ee;border-radius:9px">
+          ${layoutBtn("grid", "Grid", "Adaptive grid")}${layoutBtn("stacked", "Stacked", "One column")}${layoutBtn("spotlight", "Spotlight", "First panel large")}
+        </div>
+      </div>`;
+    wireControls();
+    updatePlayButton();
+  }
+
+  function renderOverlay() {
+    const el = document.getElementById("overlay");
+    if (st.status === "loading") {
+      el.innerHTML = `<div style="width:34px;height:34px;border-radius:50%;border:3px solid #d8e0e6;border-top-color:#0e7c86;animation:sb-spin .8s linear infinite"></div><p style="margin:0;font-size:14px;color:#5b6b76">${st.overlayText}</p>`;
+    } else if (st.status === "error") {
+      el.innerHTML = `<div style="font-size:30px">⚠️</div><p style="margin:0;font-size:14px;color:#b4422f;font-weight:500">${st.overlayText}</p>`;
+    } else {
+      el.innerHTML = `<p style="margin:0;font-size:14px;color:#5b6b76">${st.overlayText}</p>`;
+    }
+  }
+
+  function renderShell() {
+    const m = st.manifest;
+    // ---- tile strip ----
+    const bands = Object.keys(m.steps[0].bands);
+    const bandThumbs = bands.map(b =>
+      `<div style="display:flex;flex-direction:column;gap:5px;align-items:center"><canvas width="120" height="112" data-ck="band:${b}" style="width:84px;height:78px;border-radius:7px;border:1px solid #d8e0e6;background:#0c1a22"></canvas><span style="font-size:10.5px;color:#5b6b76;font-weight:500">${BAND_LABEL[b] || b}</span></div>`).join("");
+    const predThumbs = st.selectedModels.map(id =>
+      `<div style="display:flex;flex-direction:column;gap:5px;align-items:center"><canvas width="120" height="112" data-ck="pred:${id}" style="width:84px;height:78px;border-radius:7px;border:1px solid #d8e0e6;background:#0c1a22"></canvas><span style="font-size:10.5px;color:#5b6b76;font-weight:500;max-width:92px;text-align:center;line-height:1.2">${modelMeta(id).label}</span></div>`).join("");
+    document.getElementById("tilestrip").innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+        <span class="lbl">Current tile</span>
+        <span id="tileId" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#0e7c86;font-weight:600;background:#e6f3f3;padding:2px 7px;border-radius:5px"></span>
+        <span id="buffering" style="display:none;align-items:center;gap:5px;font-size:11px;color:#9a8a3a;font-family:'IBM Plex Mono',monospace"><span style="width:6px;height:6px;border-radius:50%;background:#c9a92a;animation:sb-blink 1s infinite"></span>buffering</span>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <div style="display:flex;gap:10px">${bandThumbs}</div>
+        <div style="width:1px;background:#eaeff3"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">${predThumbs}</div>
+      </div>`;
+
+    // ---- panels ----
+    const panelDefs = st.selectedModels.map(id => ({ id, isModel: true, meta: modelMeta(id) }));
+    if (st.showGT) panelDefs.push({ id: "__gt", isModel: false });
+    const count = panelDefs.length;
+    let gridStyle, wrapOf = () => "";
+    if (st.layout === "stacked") gridStyle = "display:grid;gap:14px;grid-template-columns:1fr";
+    else if (st.layout === "spotlight") { gridStyle = "display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))"; wrapOf = (i) => i === 0 ? "grid-column:1 / -1" : ""; }
+    else { const min = count >= 4 ? 280 : count === 1 ? 460 : 340; gridStyle = `display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(${min}px,1fr))`; }
+
+    const mapW = m.map_size.width, mapH = m.map_size.height;
+    const grid = document.getElementById("grid");
+    grid.style.cssText = gridStyle;
+    grid.innerHTML = panelDefs.map((p, i) => {
+      const dot = p.isModel ? (MODEL_DOT[p.id] || "#888") : "#ffd400";
+      const title = p.isModel ? p.meta.label : "Ground truth";
+      const perClass = p.isModel ? `
+        <div style="padding:9px 13px;display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:9.5px;color:#9aa6ae;text-transform:uppercase;letter-spacing:.5px;margin-right:2px">per-class dice</span>
+          ${Object.entries(p.meta.summary.per_class_dice).map(([name, val]) =>
+            `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;background:#f4f7f9;border:1px solid #e7edf1;border-radius:6px;padding:3px 7px"><span style="width:8px;height:8px;border-radius:2px;background:${cssForClass(name)}"></span><span style="color:#5b6b76">${name}</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#2c3a44">${fmt(val)}</span></span>`).join("")}
+        </div>` : "";
+      const readout = p.isModel ? `
+        <div style="display:flex;gap:13px;flex:none">
+          <div style="text-align:right"><div id="td:${p.id}" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;line-height:1">—</div><div style="font-size:9px;color:#9aa6ae;text-transform:uppercase;letter-spacing:.4px;margin-top:2px">tile dice</div></div>
+          <div style="text-align:right"><div id="mn:${p.id}" style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#3c4a54;line-height:1">—</div><div style="font-size:9px;color:#9aa6ae;text-transform:uppercase;letter-spacing:.4px;margin-top:2px">mean</div></div>
+        </div>` : "";
+      return `<div style="${wrapOf(i)}"><div style="background:#fff;border:1px solid #dce3e9;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(20,40,55,.06);display:flex;flex-direction:column;height:100%">
+        <div style="padding:11px 13px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid #eef2f5">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="width:9px;height:9px;border-radius:3px;background:${dot};flex:none"></span><span style="font-size:14px;font-weight:600;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${title}</span></div>
+          ${readout}
+        </div>
+        <div style="position:relative;background:#0c1a22;line-height:0"><canvas width="${mapW}" height="${mapH}" data-ck="panel:${p.id}" style="width:100%;height:auto;display:block"></canvas></div>
+        ${perClass}
+      </div></div>`;
+    }).join("");
+
+    // collect canvases
+    canvases = new Map();
+    document.querySelectorAll("canvas[data-ck]").forEach(cv => canvases.set(cv.dataset.ck, cv));
+  }
+
+  function cssForClass(name) {
+    const id = { rock: 1, shallow_rock: 2, sand: 3 }[name];
+    const p = PALETTE[id] || PALETTE[0];
+    return `rgb(${p[0]},${p[1]},${p[2]})`;
+  }
+
+  // ---------- per-step update (frequent) ----------
+  let drawQueued = false;
+  function scheduleDraw() { if (drawQueued) return; drawQueued = true; requestAnimationFrame(() => { drawQueued = false; draw(); }); }
+
+  function tick() {
+    if (st.status !== "ready") return;
+    const idx = clampIdx(), m = st.manifest, step = m.steps[idx];
+    const sc = document.getElementById("scrub"); if (sc) sc.value = idx;
+    const ro = document.getElementById("readout"); if (ro) ro.textContent = `tile ${idx + 1} / ${m.n_tiles} · ${step.tile_id}`;
+    const tid = document.getElementById("tileId"); if (tid) tid.textContent = step.tile_id;
+    st.selectedModels.forEach(id => {
+      const pm = step.per_model[id]; if (!pm) return;
+      const td = document.getElementById("td:" + id); if (td) { td.textContent = fmt(pm.tile_dice); td.style.color = diceColor(pm.tile_dice); }
+      const mn = document.getElementById("mn:" + id); if (mn) mn.textContent = fmt(meanVal(pm.running_mean_dice));
+    });
+    preload();
+    draw();
+  }
+
+  function draw() {
+    if (st.status !== "ready" || !st.manifest) return;
+    const m = st.manifest, idx = clampIdx(), step = m.steps[idx];
+    const bd = img(m.backdrops[st.backdropBand]);
+    let missing = false;
+
+    // model + GT panels
+    const panels = st.selectedModels.map(id => ({ id, isModel: true })).concat(st.showGT ? [{ id: "__gt", isModel: false }] : []);
+    panels.forEach(p => {
+      const cv = canvases.get("panel:" + p.id); if (!cv) return;
+      const ctx = cv.getContext("2d"); ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (ready(bd)) ctx.drawImage(bd, 0, 0, cv.width, cv.height); else missing = true;
+      if (p.isModel) {
+        const pm = step.per_model[p.id]; const mp = img(pm.class_map);
+        if (ready(mp)) { ctx.save(); ctx.globalAlpha = st.overlayAlpha; ctx.drawImage(mp, 0, 0, cv.width, cv.height); ctx.restore(); } else missing = true;
+        drawOutline(ctx, step.outline_px);
+      } else {
+        const tr = img(m.truth_map);
+        if (ready(tr)) { ctx.save(); ctx.globalAlpha = st.overlayAlpha; ctx.drawImage(tr, 0, 0, cv.width, cv.height); ctx.restore(); } else missing = true;
+      }
+    });
+
+    // tile strip
+    Object.entries(step.bands).forEach(([b, rel]) => {
+      const cv = canvases.get("band:" + b); if (!cv) return;
+      const im = img(rel); drawThumb(cv, im); if (!ready(im)) missing = true;
+    });
+    st.selectedModels.forEach(id => {
+      const cv = canvases.get("pred:" + id); if (!cv) return;
+      const im = img(step.per_model[id].pred); drawThumb(cv, im); if (!ready(im)) missing = true;
+    });
+
+    const bf = document.getElementById("buffering"); if (bf) bf.style.display = missing ? "inline-flex" : "none";
+  }
+
+  function drawOutline(ctx, pts) {
+    if (!pts || !pts.length) return;
+    ctx.save();
+    ctx.lineWidth = 3; ctx.strokeStyle = "#ffd400"; ctx.shadowColor = "rgba(255,212,0,.7)"; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.stroke(); ctx.restore();
+  }
+  function drawThumb(cv, im) {
+    const ctx = cv.getContext("2d"); ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (ready(im)) ctx.drawImage(im, 0, 0, im.width, im.height, 0, 0, cv.width, cv.height);
+  }
+
+  // ---------- event wiring ----------
+  function updatePlayButton() {
+    const b = document.getElementById("playpause"); if (!b) return;
+    const icon = st.playing
+      ? `<svg width="13" height="13" viewBox="0 0 12 12" fill="#fff"><rect x="1.5" y="1" width="3" height="10" rx="1"></rect><rect x="7.5" y="1" width="3" height="10" rx="1"></rect></svg>`
+      : `<svg width="13" height="13" viewBox="0 0 12 12" fill="#fff"><path d="M2 1.3v9.4a.6.6 0 0 0 .92.5l7.2-4.7a.6.6 0 0 0 0-1L2.92.8A.6.6 0 0 0 2 1.3Z"></path></svg>`;
+    b.innerHTML = icon + (st.playing ? "Pause" : "Play");
+  }
+
+  function wireControls() {
+    const $ = (id) => document.getElementById(id);
+    const poly = $("polygon"); if (poly) poly.onchange = (e) => loadPolygon(e.target.value);
+    const chips = $("chips"); if (chips) chips.onclick = (e) => {
+      const btn = e.target.closest("[data-model]"); if (!btn) return;
+      const id = btn.dataset.model;
+      let sel = st.selectedModels.includes(id) ? st.selectedModels.filter(x => x !== id) : st.selectedModels.concat(id);
+      if (!sel.length) sel = [id];
+      // keep manifest order
+      st.selectedModels = st.manifest.models.map(m => m.id).filter(x => sel.includes(x));
+      renderShell(); tick(); renderControls();
+    };
+    const bd = $("backdrop"); if (bd) bd.onchange = (e) => { st.backdropBand = e.target.value; draw(); };
+    const gt = $("gt"); if (gt) gt.onclick = () => { st.showGT = !st.showGT; renderShell(); tick(); renderControls(); };
+    const pp = $("playpause"); if (pp) pp.onclick = togglePlay;
+    const stop = $("stop"); if (stop) stop.onclick = () => { st.playing = false; stopClock(); st.stepIndex = 0; updatePlayButton(); tick(); };
+    const sp = $("speed"); if (sp) sp.oninput = (e) => { const r = +e.target.value; st.speedMs = SPEED_BASE_MS / r; const el = $("rate"); if (el) el.textContent = "×" + (r >= 10 ? r.toFixed(0) : r.toFixed(1)); };
+    const scr = $("scrub"); if (scr) scr.oninput = (e) => { st.stepIndex = +e.target.value; tick(); };
+    document.querySelectorAll("[data-layout]").forEach(b => b.onclick = () => { st.layout = b.dataset.layout; renderShell(); tick(); renderControls(); });
+  }
+
+  function togglePlay() {
+    st.playing = !st.playing; updatePlayButton();
+    if (st.playing) startClock(); else stopClock();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (st.status !== "ready") return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "select" || tag === "textarea") return;
+    if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+    else if (e.code === "ArrowRight") { st.playing = false; stopClock(); updatePlayButton(); st.stepIndex = (clampIdx() + 1) % st.manifest.n_tiles; tick(); }
+    else if (e.code === "ArrowLeft") { st.playing = false; stopClock(); updatePlayButton(); st.stepIndex = (clampIdx() - 1 + st.manifest.n_tiles) % st.manifest.n_tiles; tick(); }
+  });
+
+  renderAll();   // show the loading overlay immediately while the catalog is fetched
+  init();
+})();
+</script>
+</body>
+</html>

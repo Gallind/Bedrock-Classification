@@ -1,0 +1,62 @@
+[
+  {
+    "id": "outro",
+    "estSeconds": 9,
+    "narration": "From raw multibeam survey to a trained, honestly evaluated seabed classifier, fully reproducible. Built for IOLR, as part of Code4Good at Reichman University."
+  },
+  {
+    "id": "intro",
+    "estSeconds": 13,
+    "narration": "Mapping the seafloor by hand is slow and inconsistent. With Israel's Oceanographic and Limnological Research institute, we built a pipeline turning multibeam sonar into per-pixel maps of rock, shallow rock, and sand."
+  },
+  {
+    "id": "data",
+    "estSeconds": 13,
+    "narration": "Each survey gives three physical layers: depth, backscatter hardness, and slope. Experts hand-draw the ground truth. But we have only one to two square kilometres of labels, with backscatter that varies per survey."
+  },
+  {
+    "id": "pipeline",
+    "estSeconds": 10,
+    "narration": "The pipeline is deterministic: every layer reprojected onto one shared grid, expert polygons turned into labels, and each survey cut into overlapping 128-metre tiles."
+  },
+  {
+    "id": "modes",
+    "estSeconds": 9,
+    "narration": "Tiles come in three modes: standard, rotated to follow the annotations, and an augmentation pass turning 250 base tiles into over 900."
+  },
+  {
+    "id": "augment",
+    "estSeconds": 10,
+    "narration": "Because pixels are physical measurements, augmentation is rigid only: rotations and flips, never brightness or noise. Splits are spatial, and backscatter is normalised per survey."
+  },
+  {
+    "id": "models",
+    "estSeconds": 11,
+    "narration": "We compare two families on the same bands: a compact U-Net that learns spatial context, and per-pixel tree baselines that see one pixel at a time."
+  },
+  {
+    "id": "eval",
+    "estSeconds": 9,
+    "narration": "The honest test is leave-one-polygon-out: train on three surveys, predict the fourth, and repeat. It measures generalisation to a survey never seen."
+  },
+  {
+    "id": "results",
+    "estSeconds": 15,
+    "narration": "The results are strong. The three-band U-Net reaches a macro-Dice of 0.78 within surveys and 0.61 across unseen ones, beating every baseline. Rock is the standout, reaching 0.98 on the strongest survey, and sand follows."
+  },
+  {
+    "id": "maps",
+    "estSeconds": 10,
+    "narration": "As full maps, the story holds. The U-Net recovers rock outcrops cleanly, while the tree baselines leave noise that a depth-guided spatial filter smooths away."
+  },
+  {
+    "id": "watch",
+    "estSeconds": 11,
+    "narration": "Here the pipeline runs tile by tile, each model predicting live as the map fills in. It's how we caught a labelling bug: two large annotations were silently dropped."
+  },
+  {
+    "id": "conclusions",
+    "estSeconds": 11,
+    "narration": "Rock classification is reliable enough for hazard and habitat mapping. The ceiling isn't the architecture, it's data. The next gains come from more annotation, not a bigger model."
+  }
+]
