@@ -11,21 +11,31 @@ the narration once the voiceover manifest exists.
 
 ```
 demo/
-  src/
+  shared/           cross-format source of truth, read by BOTH renderers below
+    narration.json  the script: { id, estSeconds, narration } — TTS + speaker notes
+    palette.json    brand colours + class colours (video theme + deck theme)
+    assets.json     logical name → repo path (video copy-assets + deck images)
+  src/              Remotion video (React → MP4)
     Root.tsx        <Composition id="SeabedDemo"> + async calculateMetadata
     Video.tsx       TransitionSeries of all 12 scenes (crossfades) + one <Audio> per scene
     script.ts       pairs each scene id with its visual component
-    narration.json  the script: { id, estSeconds, narration } — single source for the TTS
+    theme.ts        imports shared/palette.json; video format constants + fonts
     timings.ts      reads public/audio/manifest.json (fallback to estSeconds)
     scenes/         S01_Intro … S12_Outro
     components/     AssetImage, AssetGif, MetricBar, StatBig, Figure, ClassLegend, ui
+  pptx/             slide deck (Python / python-pptx → PPTX). See pptx/README.md
+  brand/            logo SVG/PNG assets (referenced via shared/assets.json)
   scripts/
-    copy-assets.mjs        curate repo charts/maps/GIFs → public/assets/
+    copy-assets.mjs        curate repo charts/maps/GIFs → public/assets/ (reads shared/assets.json)
     generate-voiceover.mjs ElevenLabs TTS → public/audio/*.mp3 + manifest.json
   public/
     assets/         generated (gitignored) — run copy-assets
     audio/          generated (gitignored) — run voiceover
 ```
+
+The **video** (`src/`) and the **deck** (`pptx/`) are siblings: both read the
+`shared/` layer, but each lays out its own thing. Edit shared text/colours/asset
+paths once in `shared/` and both pick up the change.
 
 `public/assets/`, `public/audio/`, `out/`, and `.env` are gitignored — they are regenerated, never
 committed (same policy as the pipeline's `outputs/`).

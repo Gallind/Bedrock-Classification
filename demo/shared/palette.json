@@ -1,0 +1,25 @@
+{
+  "_comment": "Canonical brand palette shared by the Remotion video (src/theme.ts) and the python-pptx deck (pptx/). Deep-ocean theme + the four label-class colours used across reports/. Edit here once; both renderers pick it up.",
+  "colors": {
+    "bg": "#081a24",
+    "bgAlt": "#0d2734",
+    "panel": "#103241",
+    "panelLine": "#1d4a5c",
+    "text": "#eef5f7",
+    "textDim": "#9fb8c2",
+    "accent": "#36c6cf",
+    "accent2": "#f6c75e",
+    "rock": "#d64545",
+    "shallow": "#f0a07a",
+    "sand": "#4a78c4",
+    "unlabeled": "#8a98a0",
+    "good": "#5fd08a",
+    "warn": "#e8a13a"
+  },
+  "classes": [
+    { "key": "rock", "label": "Rock", "color": "#d64545" },
+    { "key": "shallow_rock", "label": "Shallow buried rock", "color": "#f0a07a" },
+    { "key": "sand", "label": "Sand", "color": "#4a78c4" },
+    { "key": "background", "label": "Unlabeled", "color": "#8a98a0" }
+  ]
+}

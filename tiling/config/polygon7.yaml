@@ -1,0 +1,37 @@
+name: polygon7
+src_dir: DataBase/polygon7
+
+band_order: [backscatter, bathymetry, slope]
+
+layers:
+  - name: backscatter
+    kind: xyz
+    path: "Polygon 7 Back Scatter 1m.xyz"
+    native_res_m: 1.0
+
+  - name: bathymetry
+    kind: xyz
+    path: "Polygon 7 Bathymetry 1m.xyz"
+    native_res_m: 1.0
+    cmap: summer
+    hillshade: true
+    vert_exag: 5.0
+
+  - name: slope
+    kind: xyz
+    path: "Polygon 7 Slope.xyz"
+    native_res_m: 1.0
+    cmap: YlOrRd
+
+labels:
+  kind: shapefile_per_class
+  polygonize: false
+  classes:
+    rock: 1
+    shallow_rock: 2
+    sand: 3
+  priority: [sand, shallow_rock, rock]
+  class_files:
+    rock: ["Polygon 7 Rock_no_ship.shp"]
+    shallow_rock: ["Polygon 7 Shallow Buried Rock.shp"]
+    sand: ["Polygon 7 Sand.shp", "Polygon 7.shp"]  # boundary fills unlabeled area as sand
