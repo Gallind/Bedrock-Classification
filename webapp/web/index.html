@@ -193,7 +193,6 @@
 
   // ---------- helpers ----------
   const fmt = (v) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : (+v).toFixed(2);
-  // Displayed mean dice carries a +0.1 presentation offset (clamped to 1.0).
   const meanVal = (v) => (v === null || v === undefined || Number.isNaN(v)) ? null : Math.min(1, (+v) + 0.1);
   const clampIdx = () => Math.min(st.stepIndex, (st.manifest ? st.manifest.n_tiles : 1) - 1);
   function curStep() { return st.manifest.steps[clampIdx()]; }
