@@ -32,9 +32,27 @@
     <!-- HEADER -->
     <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
       <div style="display:flex;align-items:center;gap:14px">
-        <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(150deg,#0e7c86,#0a3a52);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 2px 10px rgba(10,58,82,.25)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#bff0ee" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"></path><path d="M2 12c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"></path><circle cx="12" cy="6" r="1.4" fill="#bff0ee"></circle></svg>
-        </div>
+        <svg width="46" height="46" viewBox="28 28 264 264" style="flex:none;border-radius:50%;box-shadow:0 2px 10px rgba(10,39,52,.3)" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seabed Classification logo">
+          <defs><clipPath id="emb"><circle cx="160" cy="160" r="120"/></clipPath></defs>
+          <circle cx="160" cy="160" r="120" fill="#0d2734"/>
+          <g clip-path="url(#emb)">
+            <polygon points="160,72 95,236 225,236" fill="#36c6cf" opacity="0.10"/>
+            <line x1="160" y1="72" x2="95" y2="236" stroke="#36c6cf" stroke-width="1.4" opacity="0.45"/>
+            <line x1="160" y1="72" x2="225" y2="236" stroke="#36c6cf" stroke-width="1.4" opacity="0.45"/>
+            <line x1="160" y1="72" x2="160" y2="236" stroke="#36c6cf" stroke-width="1.2" opacity="0.22"/>
+            <path d="M140 72 Q160 89 180 72" fill="none" stroke="#36c6cf" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+            <path d="M126 72 Q160 101 194 72" fill="none" stroke="#36c6cf" stroke-width="2" stroke-linecap="round" opacity="0.38"/>
+            <path d="M112 72 Q160 113 208 72" fill="none" stroke="#36c6cf" stroke-width="2" stroke-linecap="round" opacity="0.26"/>
+            <path d="M40 235 L55 232 L72 224 L85 237 L103 219 L120 232 L130 223 L150 234 L170 226 L195 235 L225 231 L250 236 L265 233 L280 236 L280 290 L40 290 Z" fill="#0a2230"/>
+            <path d="M55 232 L72 224 L85 237 L103 219 L120 232 L130 223" fill="none" stroke="#d64545" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M130 223 L150 234 L170 226 L195 235" fill="none" stroke="#f0a07a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M195 235 L225 231 L250 236 L265 233" fill="none" stroke="#4a78c4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <line x1="160" y1="60" x2="160" y2="72" stroke="#f6c75e" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="160" cy="72" r="4.4" fill="#f6c75e"/>
+          <circle cx="160" cy="160" r="120" fill="none" stroke="#36c6cf" stroke-width="3.2"/>
+          <circle cx="160" cy="160" r="112" fill="none" stroke="#1d4a5c" stroke-width="1.2"/>
+        </svg>
         <div>
           <h1 style="margin:0;font-size:23px;font-weight:700;letter-spacing:-.4px;line-height:1.1">Watch the Seabed Classifier</h1>
           <p style="margin:3px 0 0;font-size:13.5px;color:#5b6b76;font-weight:400">Replay of how each model classifies a seafloor survey, tile by tile.</p>
@@ -84,7 +102,12 @@
     hgb_spatial: "#6a4fb0", hgb_raw: "#a18ad0",
   };
   const BAND_LABEL = { backscatter: "Backscatter", bathymetry: "Bathymetry", slope: "Slope" };
-  const DEFAULT_MODELS = ["unet_3band", "rf_raw", "rf_spatial"];
+  const DEFAULT_MODELS = ["unet_3band", "rf_spatial", "hgb_spatial"];
+  // Per-polygon default survey backdrop (falls back to the manifest default otherwise).
+  const POLY_DEFAULT_BACKDROP = { polygon1: "backscatter", polygon3: "slope", polygon7: "bathymetry" };
+  // Speed scale: rate ×1 == 250 ms/tile (what the old "×4" ran at), so the default feels brisk
+  // and the slider can push much faster. speedMs = SPEED_BASE_MS / rate.
+  const SPEED_BASE_MS = 250;
 
   // ---------- state ----------
   const st = {
@@ -95,12 +118,12 @@
     manifest: null,
     overlayAlpha: OVERLAY_ALPHA_FALLBACK,
     selectedModels: [],
-    showGT: false,
+    showGT: true,
     backdropBand: null,
     layout: "grid",
     playing: false,
     stepIndex: 0,
-    speedMs: 300,
+    speedMs: 125,   // rate ×2 (= old ×8) — brisk default
     buffering: false,
   };
 
@@ -156,8 +179,9 @@
       const defaults = DEFAULT_MODELS.filter(id => laneIds.includes(id));
       st.selectedModels = defaults.length ? defaults : laneIds.slice(0, Math.min(3, laneIds.length));
       const bands = Object.keys(m.backdrops || {});
-      const defBand = (m.backdrop && Object.entries(m.backdrops || {}).find(([, v]) => v === m.backdrop)?.[0]) || bands[0];
-      st.backdropBand = defBand || null;
+      const manifestDefault = (m.backdrop && Object.entries(m.backdrops || {}).find(([, v]) => v === m.backdrop)?.[0]) || bands[0];
+      const wanted = POLY_DEFAULT_BACKDROP[polygon];
+      st.backdropBand = (wanted && bands.includes(wanted) ? wanted : manifestDefault) || null;
       st.stepIndex = 0;
       st.status = "ready";
       renderAll();
@@ -194,10 +218,14 @@
     stopClock(); last = performance.now();
     const loop = (ts) => {
       if (!st.playing) return;
-      if (ts - last >= st.speedMs) {
-        last = ts;
+      const elapsed = ts - last;
+      if (elapsed >= st.speedMs) {
+        // advance by however many tiles fit the elapsed time, so very high rates
+        // (sub-frame speedMs) still play fast instead of being capped to 1/frame
+        const advance = Math.max(1, Math.floor(elapsed / st.speedMs));
+        last += advance * st.speedMs;
         const n = st.manifest.n_tiles;
-        st.stepIndex = (clampIdx() + 1) % n;
+        st.stepIndex = (clampIdx() + advance) % n;
         tick();
       }
       raf = requestAnimationFrame(loop);
@@ -262,7 +290,7 @@
     const gtSty = "display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;" +
       (st.showGT ? "background:#15222b;color:#fff;border:1px solid #15222b" : "background:#f6f8fa;color:#46535d;border:1px solid #d3dbe2");
 
-    const rate = 1000 / st.speedMs;
+    const rate = SPEED_BASE_MS / st.speedMs;
     const rateLabel = "×" + (rate >= 10 ? rate.toFixed(0) : rate.toFixed(1));
     const n = m ? m.n_tiles : 1, idx = clampIdx();
 
@@ -300,7 +328,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:10px;min-width:190px">
           <span style="font-size:11px;color:#7a8893;font-weight:500">Speed</span>
-          <input id="speed" type="range" min="60" max="1000" step="10" value="${1060 - st.speedMs}" style="flex:1" aria-label="Playback speed">
+          <input id="speed" type="range" min="1" max="16" step="0.5" value="${rate}" style="flex:1" aria-label="Playback speed">
           <span id="rate" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:#0e7c86;min-width:44px;text-align:right">${rateLabel}</span>
         </div>
         <div style="display:flex;align-items:center;gap:11px;flex:1;min-width:240px">
@@ -487,7 +515,7 @@
     const gt = $("gt"); if (gt) gt.onclick = () => { st.showGT = !st.showGT; renderShell(); tick(); renderControls(); };
     const pp = $("playpause"); if (pp) pp.onclick = togglePlay;
     const stop = $("stop"); if (stop) stop.onclick = () => { st.playing = false; stopClock(); st.stepIndex = 0; updatePlayButton(); tick(); };
-    const sp = $("speed"); if (sp) sp.oninput = (e) => { st.speedMs = 1060 - (+e.target.value); const r = 1000 / st.speedMs; const el = $("rate"); if (el) el.textContent = "×" + (r >= 10 ? r.toFixed(0) : r.toFixed(1)); };
+    const sp = $("speed"); if (sp) sp.oninput = (e) => { const r = +e.target.value; st.speedMs = SPEED_BASE_MS / r; const el = $("rate"); if (el) el.textContent = "×" + (r >= 10 ? r.toFixed(0) : r.toFixed(1)); };
     const scr = $("scrub"); if (scr) scr.oninput = (e) => { st.stepIndex = +e.target.value; tick(); };
     document.querySelectorAll("[data-layout]").forEach(b => b.onclick = () => { st.layout = b.dataset.layout; renderShell(); tick(); renderControls(); });
   }
