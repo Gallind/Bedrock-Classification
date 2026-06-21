@@ -11,10 +11,12 @@ webapp/
   data/            # GENERATED recordings (gitignored) — produced by the recorder
     catalog.json   #   index of polygons + models
     sessions/<polygon>/
-      manifest.json    #   playback timeline for that polygon
-      backdrop.jpg     #   grayscale survey mosaic (shared)
-      truth.png        #   ground-truth overlay (RGBA, transparent where unlabeled)
-      steps/...        #   per-tile band thumbnails + per-model cumulative maps & tile preds
+      manifest.json              #   playback timeline for that polygon
+      backdrop_backscatter.jpg   #   survey backdrop, backscatter (default) — grayscale
+      backdrop_bathymetry.jpg    #   survey backdrop, bathymetry — summer colormap
+      backdrop_slope.jpg         #   survey backdrop, slope — YlOrRd colormap
+      truth.png                  #   ground-truth overlay (RGBA, transparent where unlabeled)
+      steps/...                  #   per-tile band thumbnails + per-model cumulative maps & tile preds
   web/             # frontend (built separately via Claude Design — see prompt in the plan)
   README.md
 ```

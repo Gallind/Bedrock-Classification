@@ -27,6 +27,8 @@ from typing import Callable
 
 import numpy as np
 from PIL import Image
+from rasterio.enums import Resampling
+from rasterio.warp import reproject
 
 from seabed_tiler.viz import LABEL_COLORS
 
@@ -39,7 +41,7 @@ from .normalize import apply_stats, load_stats
 from .predict import MapAccumulator, feature_valid_mask, resolve_polygon_stats
 from .train import resolve_device
 from .watch import (
-    build_backdrop,
+    BAND_CMAPS,
     build_truth_map,
     masked_label_rgb,
     render_band,
@@ -104,6 +106,41 @@ def _save_rgb(rgb: np.ndarray, path: Path, fmt: str = "JPEG") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     img = Image.fromarray(rgb)
     img.save(path, quality=88) if fmt == "JPEG" else img.save(path)
+
+
+def _build_band_backdrops(records, acc, bands, stats, band_modes, nodata) -> dict[str, np.ndarray]:
+    """One (H, W, 3) uint8 colormapped mosaic per band on the map grid, so the website can
+    switch the survey backdrop between backscatter / bathymetry / slope. Mask-weighted
+    reprojection identical to the class map (and seabed_unet.watch.build_backdrop), so every
+    backdrop stays pixel-aligned with the overlays. Per-band colormap = BAND_CMAPS (backscatter
+    grayscale, bathymetry summer, slope YlOrRd), matching the tile-strip thumbnails."""
+    from matplotlib import colormaps
+
+    n = len(bands)
+    sums = np.zeros((n, acc.n_rows, acc.n_cols), dtype=np.float64)
+    weight = np.zeros((acc.n_rows, acc.n_cols), dtype=np.float64)
+    for r in records:
+        inputs = apply_stats(r.features, r.polygon, bands, stats, nodata, band_modes)
+        valid = feature_valid_mask(r.features, nodata).astype(np.float32)
+        dst = np.zeros((n + 1, acc.n_rows, acc.n_cols), dtype=np.float32)
+        for k, src in enumerate([inputs[b] * valid for b in range(n)] + [valid]):
+            reproject(
+                source=src, destination=dst[k],
+                src_transform=r.transform, src_crs=r.crs,
+                dst_transform=acc.transform, dst_crs=acc.crs,
+                resampling=Resampling.bilinear,
+            )
+        sums += dst[:n]
+        weight += dst[n]
+    covered = weight > 1e-3
+    out: dict[str, np.ndarray] = {}
+    for b, band in enumerate(bands):
+        norm = np.where(covered, sums[b] / np.maximum(weight, 1e-9), 0.0)
+        cmap = colormaps[BAND_CMAPS.get(band, "gray")]
+        rgb = (cmap(np.clip(norm, 0.0, 1.0))[..., :3] * 255).astype(np.uint8)
+        rgb[~covered] = 0
+        out[band] = rgb
+    return out
 
 
 def _map_dice(
@@ -273,9 +310,14 @@ def record_polygon(
     steps_dir = session / "steps"
     (steps_dir).mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"    building backdrop + truth ({n_tiles} tiles) ...")
-    backdrop = build_backdrop(main_records, grid_acc, cfg.bands, main_stats, main_band_modes, nodata)
-    Image.fromarray(backdrop).resize(out_size, Image.BILINEAR).save(session / "backdrop.jpg", quality=88)
+    logger.info(f"    building per-band backdrops + truth ({n_tiles} tiles) ...")
+    backdrops = _build_band_backdrops(main_records, grid_acc, cfg.bands, main_stats, main_band_modes, nodata)
+    backdrop_files: dict[str, str] = {}
+    for band, rgb in backdrops.items():
+        rel = f"backdrop_{band}.jpg"
+        Image.fromarray(rgb).resize(out_size, Image.BILINEAR).save(session / rel, quality=88)
+        backdrop_files[band] = rel
+    default_band = cfg.bands[0]  # backscatter (3-band config band order) — the familiar grayscale look
     truth_ids = build_truth_map(main_records, grid_acc)
     _save_overlay(truth_ids, session / "truth.png", out_size)
 
@@ -359,7 +401,8 @@ def record_polygon(
         "class_palette": {str(cid): list(rgb) for cid, rgb in LABEL_COLORS.items()},
         "overlay_alpha": OVERLAY_ALPHA,
         "map_size": {"width": out_w, "height": out_h},
-        "backdrop": "backdrop.jpg",
+        "backdrop": backdrop_files[default_band],
+        "backdrops": backdrop_files,
         "truth_map": "truth.png",
         "n_tiles": n_tiles,
         "models": model_entries,

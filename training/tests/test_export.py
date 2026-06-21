@@ -82,10 +82,16 @@ def test_record_polygon_tree_lanes(tmp_path):
     assert m["class_palette"]["1"] == [202, 0, 32]  # rock = red, from LABEL_COLORS
 
     session = manifest_path.parent
-    assert (session / "backdrop.jpg").exists()
+    # one backdrop per band, switchable in the website; default is the first band (backscatter)
+    assert set(m["backdrops"]) == {"backscatter", "bathymetry", "slope"}
+    assert m["backdrop"] == m["backdrops"]["backscatter"]
+    msize = (m["map_size"]["width"], m["map_size"]["height"])
+    for band, rel in m["backdrops"].items():
+        bd = Image.open(session / rel)
+        assert bd.size == msize, band
     truth = Image.open(session / "truth.png")
     assert truth.mode == "RGBA"
-    assert truth.size == (m["map_size"]["width"], m["map_size"]["height"])
+    assert truth.size == msize
 
     step = m["steps"][0]
     assert len(step["outline_px"]) == 4
