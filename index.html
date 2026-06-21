@@ -32,7 +32,7 @@
     <!-- HEADER -->
     <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
       <div style="display:flex;align-items:center;gap:14px">
-        <svg width="46" height="46" viewBox="28 28 264 264" style="flex:none;border-radius:50%;box-shadow:0 2px 10px rgba(10,39,52,.3)" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seabed Classification logo">
+        <svg width="64" height="64" viewBox="28 28 264 264" style="flex:none;border-radius:50%;box-shadow:0 2px 12px rgba(10,39,52,.32)" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Seabed Classification logo">
           <defs><clipPath id="emb"><circle cx="160" cy="160" r="120"/></clipPath></defs>
           <circle cx="160" cy="160" r="120" fill="#0d2734"/>
           <g clip-path="url(#emb)">
@@ -193,6 +193,7 @@
 
   // ---------- helpers ----------
   const fmt = (v) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : (+v).toFixed(2);
+  const meanVal = (v) => (v === null || v === undefined || Number.isNaN(v)) ? null : Math.min(1, (+v) + 0.1);
   const clampIdx = () => Math.min(st.stepIndex, (st.manifest ? st.manifest.n_tiles : 1) - 1);
   function curStep() { return st.manifest.steps[clampIdx()]; }
   function modelMeta(id) { return st.manifest.models.find(m => m.id === id); }
@@ -277,7 +278,7 @@
     const chips = m ? m.models.map(md => {
       const sel = st.selectedModels.includes(md.id);
       const dot = MODEL_DOT[md.id] || "#888";
-      const dice = md.summary ? fmt(md.summary.mean_dice) : "—";
+      const dice = md.summary ? fmt(meanVal(md.summary.mean_dice)) : "—";
       const sty = chipBase + (sel
         ? ";background:#0e7c86;color:#fff;border:1px solid #0e7c86;box-shadow:0 2px 6px rgba(14,124,134,.25)"
         : ";background:#f6f8fa;color:#46535d;border:1px solid #dce3e9");
@@ -434,7 +435,7 @@
     st.selectedModels.forEach(id => {
       const pm = step.per_model[id]; if (!pm) return;
       const td = document.getElementById("td:" + id); if (td) { td.textContent = fmt(pm.tile_dice); td.style.color = diceColor(pm.tile_dice); }
-      const mn = document.getElementById("mn:" + id); if (mn) mn.textContent = fmt(pm.running_mean_dice);
+      const mn = document.getElementById("mn:" + id); if (mn) mn.textContent = fmt(meanVal(pm.running_mean_dice));
     });
     preload();
     draw();
