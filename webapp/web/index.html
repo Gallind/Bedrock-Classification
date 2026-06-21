@@ -69,7 +69,11 @@
 (function () {
   // ---------- config ----------
   const params = new URLSearchParams(location.search);
-  const DATA_BASE_URL = (params.get("data") || "/data").replace(/\/+$/, "");
+  // Resolve the data root relative to the page so it works both in local dev
+  // (served from webapp/ -> page at /web/, data at ../data) and on GitHub Pages
+  // (index.html and data/ are siblings at the site root -> ./data). ?data= overrides.
+  const defaultData = location.pathname.includes("/web/") ? "../data" : "data";
+  const DATA_BASE_URL = (params.get("data") || defaultData).replace(/\/+$/, "");
   const OVERLAY_ALPHA_FALLBACK = 0.8;
   const PRELOAD_AHEAD = 6;
 
